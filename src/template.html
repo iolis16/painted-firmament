@@ -1,0 +1,149 @@
+<title>The Painted Firmament</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=IM+Fell+English:ital@0;1&display=swap">
+<style>
+:root{
+  --ground:#070a19; --sky-zenith:#0c1238; --sky-mid:#172150; --sky-low:#2b2f62; --sky-horizon:#4d4068;
+  --ink:#e9d6a8; --ink-dim:rgba(233,214,168,.55); --gold:#f0c46e; --gold-soft:rgba(240,196,110,.35);
+  --panel:rgba(9,12,32,.78); --panel-edge:rgba(233,214,168,.22); --text:#efe4c9; --text-dim:#b9ad91;
+  --serif:"Cormorant Garamond",Garamond,"Times New Roman",serif; --fell:"IM Fell English","Cormorant Garamond",Georgia,serif;
+  color-scheme:dark;
+}
+html,body{height:100%}
+body{margin:0;background:var(--ground);color:var(--text);font-family:var(--serif);font-size:16px;line-height:1.35;overflow:hidden;-webkit-font-smoothing:antialiased}
+#stage{position:fixed;inset:0;cursor:crosshair}
+#sky{position:absolute;inset:0;width:100%;height:100%;display:block}
+#overlay{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+#overlay .art path,#overlay .art ellipse,#overlay .art circle,#overlay .art line,#overlay .art polyline{fill:none;stroke:var(--ink);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;opacity:.85}
+#overlay .art .w{fill:#d9b56a;stroke:none;opacity:.13}
+#overlay .art .h{stroke-width:.8;opacity:.42}
+#overlay .art .k2{stroke-width:2.6}
+#overlay .art .f{fill:var(--ink);stroke:none;opacity:.8}
+#overlay .art .wb{stroke:#d9b56a;fill:none;stroke-width:16;opacity:.13}
+#overlay .fig{transition:opacity 1.1s ease}
+@media (prefers-reduced-motion:reduce){#overlay .fig{transition:opacity .2s}}
+.panel{position:fixed;background:var(--panel);border:1px solid var(--panel-edge);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-radius:4px;box-shadow:0 10px 40px rgba(0,0,0,.45)}
+#hdr{top:calc(env(safe-area-inset-top,0px) + 16px);left:16px;padding:14px 18px 12px;max-width:min(360px,calc(100vw - 32px))}
+#hdr h1{margin:0;font-weight:500;font-size:26px;letter-spacing:.02em;line-height:1.05;text-wrap:balance}
+#hdr h1 em{font-style:italic;color:var(--gold)}
+#hdr .sub{margin:6px 0 0;font-size:14px;color:var(--text-dim);font-variant-numeric:tabular-nums}
+#hdr .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center}
+button,select,input{font-family:inherit;font-size:14px;color:var(--text)}
+.btn{background:transparent;border:1px solid var(--panel-edge);border-radius:3px;padding:5px 11px;cursor:pointer;letter-spacing:.04em;transition:border-color .2s,background .2s}
+.btn:hover{border-color:var(--gold);background:rgba(240,196,110,.08)}
+.btn:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.btn.primary{border-color:var(--gold);color:var(--gold)}
+.time{display:flex;align-items:center;gap:10px;margin-top:10px;font-size:13px;color:var(--text-dim)}
+.time input[type=range]{flex:1;accent-color:var(--gold);min-width:120px}
+.time .lbl{white-space:nowrap;font-variant-numeric:tabular-nums;min-width:8ch}
+#vis{bottom:calc(env(safe-area-inset-bottom,0px) + 16px);left:16px;width:min(300px,calc(100vw - 32px));max-height:42vh;display:flex;flex-direction:column}
+#vis header{padding:10px 16px 8px;display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid var(--panel-edge);cursor:pointer}
+#vis header h2{margin:0;font-size:12px;letter-spacing:.18em;text-transform:uppercase;font-weight:600;color:var(--text-dim)}
+#vis header span{font-size:13px;color:var(--text-dim);font-variant-numeric:tabular-nums}
+#vis ul{list-style:none;margin:0;padding:6px 0;overflow:auto;flex:1}
+#vis li{padding:5px 16px;display:flex;justify-content:space-between;gap:12px;cursor:pointer;font-size:15px}
+#vis li:hover,#vis li.active{background:rgba(240,196,110,.1)}
+#vis li b{font-weight:500}
+#vis li i{font-style:italic;color:var(--text-dim);font-size:13px;white-space:nowrap}
+#vis.collapsed ul{display:none}
+#detail{top:calc(env(safe-area-inset-top,0px) + 16px);right:16px;width:min(340px,calc(100vw - 32px));max-height:calc(100vh - 32px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));overflow:auto;padding:16px 20px 18px;transform:translateX(24px);opacity:0;pointer-events:none;transition:opacity .5s,transform .5s}
+#detail.open{transform:none;opacity:1;pointer-events:auto}
+#detail .eyebrow{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--text-dim);margin:0}
+#detail h2{margin:2px 0 0;font-size:32px;font-weight:500;line-height:1;letter-spacing:.01em}
+#detail .latin{font-style:italic;color:var(--gold);font-size:17px;margin:4px 0 0}
+#detail .where{font-size:14px;color:var(--text-dim);margin:8px 0 0;font-variant-numeric:tabular-nums}
+.seg{display:flex;border:1px solid var(--panel-edge);border-radius:3px;overflow:hidden;margin:14px 0 12px}
+.seg button{flex:1;background:transparent;border:0;padding:7px 0;cursor:pointer;letter-spacing:.1em;text-transform:uppercase;font-size:12px;color:var(--text-dim);transition:background .3s,color .3s}
+.seg button[aria-pressed=true]{background:rgba(240,196,110,.16);color:var(--gold)}
+.seg button:focus-visible{outline:2px solid var(--gold);outline-offset:-2px}
+#sci table{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
+#sci th{font-weight:600;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-dim);text-align:left;padding:4px 0;border-bottom:1px solid var(--panel-edge)}
+#sci td{padding:4px 0;border-bottom:1px solid rgba(233,214,168,.08);vertical-align:baseline}
+#sci td.n{text-align:right}#sci th.n{text-align:right}
+#sci td .by{color:var(--text-dim);font-size:13px;margin-left:5px}
+#sci .note{font-size:13px;color:var(--text-dim);margin:10px 0 0;font-style:italic}
+#myth{font-family:var(--fell);font-size:17px;line-height:1.45}
+#myth .drop::first-letter{font-size:2.6em;float:left;line-height:.8;margin:6px 6px 0 0;color:var(--gold)}
+#myth p{margin:0 0 10px}
+#myth .plate{font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-family:var(--serif);color:var(--text-dim);margin-top:12px}
+#detail .foot{margin-top:14px;display:flex;gap:8px;flex-wrap:wrap}
+#loc{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(4,6,18,.55);z-index:10;padding:16px;box-sizing:border-box}
+#loc.open{display:flex}
+#loc .card{box-sizing:border-box;background:var(--panel);border:1px solid var(--panel-edge);backdrop-filter:blur(14px);border-radius:4px;padding:22px 24px;width:min(400px,100%);box-shadow:0 20px 60px rgba(0,0,0,.6)}
+#loc h2{margin:0 0 4px;font-size:24px;font-weight:500}
+#loc p{margin:0 0 14px;color:var(--text-dim);font-size:14px}
+#loc label{display:block;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--text-dim);margin:10px 0 4px}
+#loc select,#loc input{width:100%;box-sizing:border-box;background:rgba(0,0,0,.3);border:1px solid var(--panel-edge);border-radius:3px;padding:7px 9px;font-size:15px}
+#loc .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+#loc .acts{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap}
+#loc .err{color:#f0a06e;font-size:13px;margin-top:8px;min-height:1em}
+#toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 24px);transform:translateX(-50%);background:var(--panel);border:1px solid var(--panel-edge);padding:8px 16px;border-radius:3px;font-size:14px;opacity:0;transition:opacity .4s;pointer-events:none;white-space:nowrap}
+#toast.show{opacity:1}
+#hint{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 18px);transform:translateX(-50%);font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-dim);pointer-events:none;transition:opacity .6s}
+@media (max-width:760px){
+  #hdr{max-width:calc(100vw - 32px)}
+  #hdr h1{font-size:22px}
+  #hint{display:none}
+  #vis{width:calc(100vw - 32px);max-height:34vh}
+  #detail{top:auto;bottom:calc(env(safe-area-inset-bottom,0px) + 16px);right:16px;left:16px;width:auto;max-height:58vh;transform:translateY(24px)}
+  #detail.open{transform:none}
+  #detail.open ~ #vis{display:none}
+  #detail h2{font-size:26px}
+}
+</style>
+<div id="stage">
+  <canvas id="sky"></canvas>
+  <svg id="overlay" xmlns="http://www.w3.org/2000/svg">
+    <defs><filter id="rough" x="-10%" y="-10%" width="120%" height="120%"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="7" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.2" xChannelSelector="R" yChannelSelector="G"/></filter></defs>
+    <g id="artroot" class="art" filter="url(#rough)"></g>
+  </svg>
+</div>
+<div id="hint">Click a constellation · drag to turn the sky · scroll to zoom</div>
+<section id="hdr" class="panel" aria-label="Sky settings">
+  <h1>The Painted <em>Firmament</em></h1>
+  <p class="sub" id="where">Finding your sky…</p>
+  <div class="row">
+    <button class="btn" id="locBtn">Location</button>
+    <button class="btn" id="nowBtn">Now</button>
+    <button class="btn" id="modeBtn" aria-pressed="false">Mythic sky</button>
+  </div>
+  <div class="time"><span class="lbl" id="tlabel">now</span><input type="range" id="tslider" min="-12" max="12" step="0.25" value="0" aria-label="Hours from now"></div>
+</section>
+<aside id="detail" class="panel" aria-live="polite">
+  <p class="eyebrow">Constellation</p>
+  <h2 id="dName">Orion</h2>
+  <p class="latin" id="dTitle">The Hunter</p>
+  <p class="where" id="dWhere"></p>
+  <div class="seg" role="group" aria-label="View">
+    <button id="segSci" aria-pressed="true">Scientific</button>
+    <button id="segMyth" aria-pressed="false">Mythic</button>
+  </div>
+  <div id="sci"></div>
+  <div id="myth" hidden></div>
+  <div class="foot"><button class="btn" id="backBtn">Whole sky</button></div>
+</aside>
+<section id="vis" class="panel" aria-label="Visible now">
+  <header id="visHead"><h2>Above the horizon now</h2><span id="visCount"></span></header>
+  <ul id="visList"></ul>
+</section>
+<div id="loc" role="dialog" aria-modal="true" aria-labelledby="locTitle">
+  <div class="card">
+    <h2 id="locTitle">Where are you watching from?</h2>
+    <p>The map draws the sky above this point at the current moment. Pick a city, type coordinates, or let the browser find you.</p>
+    <label for="city">City</label>
+    <select id="city"></select>
+    <div class="two">
+      <div><label for="lat">Latitude</label><input id="lat" type="number" step="0.01" min="-90" max="90" placeholder="51.51"></div>
+      <div><label for="lon">Longitude</label><input id="lon" type="number" step="0.01" min="-180" max="180" placeholder="-0.13"></div>
+    </div>
+    <div class="err" id="locErr"></div>
+    <div class="acts"><button class="btn" id="geoBtn">Use my location</button><button class="btn primary" id="applyBtn">Set location</button></div>
+  </div>
+</div>
+<div id="toast"></div>
+<script>
+__CATALOG__
+__ART__
+const FRAMES = __FRAMES__;
+__APP__
+</script>
