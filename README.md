@@ -9,6 +9,21 @@ Published artifact: https://claude.ai/artifact/1kzk8V1p4V4QCRq74offDq
 Everything runs client-side in one HTML file. No framework, no backend, no
 external data: the star catalog and the 47 engravings are embedded.
 
+## Deploy
+
+The build writes a static site to `dist/`. `vercel.json` already points Vercel at
+it, so either of these works:
+
+```sh
+npx vercel            # from this folder; follow the prompts, then `npx vercel --prod`
+```
+
+or push the repo to GitHub and import it at vercel.com/new (framework preset:
+Other). Any static host works the same way: run `node build.js` and serve `dist/`.
+Geolocation needs HTTPS, which Vercel provides.
+
+To try it locally: `npm start` (builds, then serves `dist/` on a local port).
+
 ## Layout
 
 | Path | Purpose |
@@ -17,7 +32,7 @@ external data: the star catalog and the 47 engravings are embedded.
 | `src/art.js` | the 47 SVG engravings, each drawn in its constellation's local sky frame |
 | `src/app.js` | astronomy (sidereal time, alt/az, stereographic projection), canvas renderer, SVG figure fitting, UI |
 | `src/template.html` | markup and CSS |
-| `build.js` | inlines everything into `dist/firmament.html` |
+| `build.js` | inlines everything into `dist/index.html` (deployable page) and `dist/firmament.artifact.html` (the fragment the claude.ai artifact host wraps) |
 | `tools/frames.js` | computes each constellation's local drawing frame (gnomonic, north up, east left, 10 units per degree) and writes `tools/frames.json` |
 | `tools/preview.js` | renders one constellation's stars plus its engraving to a PNG with headless Chrome, for checking art alignment |
 | `tools/montage.py` | tiles several previews into one image |
@@ -26,8 +41,8 @@ external data: the star catalog and the 47 engravings are embedded.
 
 ```sh
 cd tools && node frames.js && cd ..   # regenerate frames.json (only needed if catalog.js changes)
-node build.js                          # writes dist/firmament.html
-open dist/firmament.html
+node build.js                          # writes dist/index.html
+open dist/index.html
 ```
 
 ## Checking an engraving
@@ -44,6 +59,6 @@ projected stars, so the figure follows the real sky.
 
 ## Deep links
 
-`dist/firmament.html#lat=40.71&lon=-74.01&label=New%20York&con=Ori&myth=1&h=9`
+`dist/index.html#lat=40.71&lon=-74.01&label=New%20York&con=Ori&myth=1&h=9`
 sets location, opens a constellation, switches to the mythic view and offsets the
 time by nine hours.

@@ -9,5 +9,10 @@ const app=fs.readFileSync(src('app.js'),'utf8');
 let html=fs.readFileSync(src('template.html'),'utf8');
 html=html.replace('__CATALOG__',()=>cat).replace('__ART__',()=>art).replace('__FRAMES__',()=>JSON.stringify(F)).replace('__APP__',()=>app);
 fs.mkdirSync(path.join(root,'dist'),{recursive:true});
-fs.writeFileSync(path.join(root,'dist','firmament.html'),html);
-console.log('built dist/firmament.html',(html.length/1024).toFixed(0),'KB');
+// full standalone document (deploy this folder)
+fs.writeFileSync(path.join(root,'dist','index.html'),html);
+// artifact fragment: the claude.ai artifact host wraps the page in its own document skeleton
+const frag=html.slice(html.indexOf('<!--ARTIFACT-START-->')+'<!--ARTIFACT-START-->'.length, html.indexOf('<!--ARTIFACT-END-->'))
+  .replace('<!--HEAD-END--></head>\n<body>\n','').trim()+'\n';
+fs.writeFileSync(path.join(root,'dist','firmament.artifact.html'),frag);
+console.log('built dist/index.html',(html.length/1024).toFixed(0),'KB and dist/firmament.artifact.html');

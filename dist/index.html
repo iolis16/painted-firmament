@@ -1,0 +1,1831 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="A live star map of the sky above you right now. See each constellation as its real stars, or as a hand-drawn mythological engraving pinned to them.">
+<meta name="theme-color" content="#070a19">
+<meta property="og:title" content="The Painted Firmament">
+<meta property="og:description" content="The constellations above you right now, as real stars or as painted myths.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%230c1238'/%3E%3Ccircle cx='22' cy='24' r='3' fill='%23f0c46e'/%3E%3Ccircle cx='40' cy='18' r='2.2' fill='%23e9d6a8'/%3E%3Ccircle cx='44' cy='38' r='3.2' fill='%23f0c46e'/%3E%3Ccircle cx='28' cy='44' r='2' fill='%23e9d6a8'/%3E%3Cpath d='M22 24L40 18L44 38L28 44Z' fill='none' stroke='%23e9d6a8' stroke-width='1.2' opacity='.7'/%3E%3C/svg%3E">
+<!--ARTIFACT-START-->
+<title>The Painted Firmament</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=IM+Fell+English:ital@0;1&display=swap">
+<style>
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
+img{max-width:100%}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+:root{
+  --ground:#070a19; --sky-zenith:#0c1238; --sky-mid:#172150; --sky-low:#2b2f62; --sky-horizon:#4d4068;
+  --ink:#e9d6a8; --ink-dim:rgba(233,214,168,.55); --gold:#f0c46e; --gold-soft:rgba(240,196,110,.35);
+  --panel:rgba(9,12,32,.78); --panel-edge:rgba(233,214,168,.22); --text:#efe4c9; --text-dim:#b9ad91;
+  --serif:"Cormorant Garamond",Garamond,"Times New Roman",serif; --fell:"IM Fell English","Cormorant Garamond",Georgia,serif;
+  color-scheme:dark;
+}
+html,body{height:100%}
+body{margin:0;background:var(--ground);color:var(--text);font-family:var(--serif);font-size:16px;line-height:1.35;overflow:hidden;-webkit-font-smoothing:antialiased}
+#stage{position:fixed;inset:0;cursor:crosshair}
+#sky{position:absolute;inset:0;width:100%;height:100%;display:block}
+#overlay{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+#overlay .art path,#overlay .art ellipse,#overlay .art circle,#overlay .art line,#overlay .art polyline{fill:none;stroke:var(--ink);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;opacity:.85}
+#overlay .art .w{fill:#d9b56a;stroke:none;opacity:.13}
+#overlay .art .h{stroke-width:.8;opacity:.42}
+#overlay .art .k2{stroke-width:2.6}
+#overlay .art .f{fill:var(--ink);stroke:none;opacity:.8}
+#overlay .art .wb{stroke:#d9b56a;fill:none;stroke-width:16;opacity:.13}
+#overlay .fig{transition:opacity 1.1s ease}
+@media (prefers-reduced-motion:reduce){#overlay .fig{transition:opacity .2s}}
+.panel{position:fixed;background:var(--panel);border:1px solid var(--panel-edge);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-radius:4px;box-shadow:0 10px 40px rgba(0,0,0,.45)}
+#hdr{top:calc(env(safe-area-inset-top,0px) + 16px);left:16px;padding:14px 18px 12px;max-width:min(360px,calc(100vw - 32px))}
+#hdr h1{margin:0;font-weight:500;font-size:26px;letter-spacing:.02em;line-height:1.05;text-wrap:balance}
+#hdr h1 em{font-style:italic;color:var(--gold)}
+#hdr .sub{margin:6px 0 0;font-size:14px;color:var(--text-dim);font-variant-numeric:tabular-nums}
+#hdr .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center}
+button,select,input{font-family:inherit;font-size:14px;color:var(--text)}
+.btn{background:transparent;border:1px solid var(--panel-edge);border-radius:3px;padding:5px 11px;cursor:pointer;letter-spacing:.04em;transition:border-color .2s,background .2s}
+.btn:hover{border-color:var(--gold);background:rgba(240,196,110,.08)}
+.btn:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.btn.primary{border-color:var(--gold);color:var(--gold)}
+.time{display:flex;align-items:center;gap:10px;margin-top:10px;font-size:13px;color:var(--text-dim)}
+.time input[type=range]{flex:1;accent-color:var(--gold);min-width:120px}
+.time .lbl{white-space:nowrap;font-variant-numeric:tabular-nums;min-width:8ch}
+#vis{bottom:calc(env(safe-area-inset-bottom,0px) + 16px);left:16px;width:min(300px,calc(100vw - 32px));max-height:42vh;display:flex;flex-direction:column}
+#vis header{padding:10px 16px 8px;display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid var(--panel-edge);cursor:pointer}
+#vis header h2{margin:0;font-size:12px;letter-spacing:.18em;text-transform:uppercase;font-weight:600;color:var(--text-dim)}
+#vis header span{font-size:13px;color:var(--text-dim);font-variant-numeric:tabular-nums}
+#vis ul{list-style:none;margin:0;padding:6px 0;overflow:auto;flex:1}
+#vis li{padding:5px 16px;display:flex;justify-content:space-between;gap:12px;cursor:pointer;font-size:15px}
+#vis li:hover,#vis li.active{background:rgba(240,196,110,.1)}
+#vis li b{font-weight:500}
+#vis li i{font-style:italic;color:var(--text-dim);font-size:13px;white-space:nowrap}
+#vis.collapsed ul{display:none}
+#detail{top:calc(env(safe-area-inset-top,0px) + 16px);right:16px;width:min(340px,calc(100vw - 32px));max-height:calc(100vh - 32px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));overflow:auto;padding:16px 20px 18px;transform:translateX(24px);opacity:0;pointer-events:none;transition:opacity .5s,transform .5s}
+#detail.open{transform:none;opacity:1;pointer-events:auto}
+#detail .eyebrow{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--text-dim);margin:0}
+#detail h2{margin:2px 0 0;font-size:32px;font-weight:500;line-height:1;letter-spacing:.01em}
+#detail .latin{font-style:italic;color:var(--gold);font-size:17px;margin:4px 0 0}
+#detail .where{font-size:14px;color:var(--text-dim);margin:8px 0 0;font-variant-numeric:tabular-nums}
+.seg{display:flex;border:1px solid var(--panel-edge);border-radius:3px;overflow:hidden;margin:14px 0 12px}
+.seg button{flex:1;background:transparent;border:0;padding:7px 0;cursor:pointer;letter-spacing:.1em;text-transform:uppercase;font-size:12px;color:var(--text-dim);transition:background .3s,color .3s}
+.seg button[aria-pressed=true]{background:rgba(240,196,110,.16);color:var(--gold)}
+.seg button:focus-visible{outline:2px solid var(--gold);outline-offset:-2px}
+#sci table{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
+#sci th{font-weight:600;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-dim);text-align:left;padding:4px 0;border-bottom:1px solid var(--panel-edge)}
+#sci td{padding:4px 0;border-bottom:1px solid rgba(233,214,168,.08);vertical-align:baseline}
+#sci td.n{text-align:right}#sci th.n{text-align:right}
+#sci td .by{color:var(--text-dim);font-size:13px;margin-left:5px}
+#sci .note{font-size:13px;color:var(--text-dim);margin:10px 0 0;font-style:italic}
+#myth{font-family:var(--fell);font-size:17px;line-height:1.45}
+#myth .drop::first-letter{font-size:2.6em;float:left;line-height:.8;margin:6px 6px 0 0;color:var(--gold)}
+#myth p{margin:0 0 10px}
+#myth .plate{font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-family:var(--serif);color:var(--text-dim);margin-top:12px}
+#detail .foot{margin-top:14px;display:flex;gap:8px;flex-wrap:wrap}
+#loc{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(4,6,18,.55);z-index:10;padding:16px;box-sizing:border-box}
+#loc.open{display:flex}
+#loc .card{box-sizing:border-box;background:var(--panel);border:1px solid var(--panel-edge);backdrop-filter:blur(14px);border-radius:4px;padding:22px 24px;width:min(400px,100%);box-shadow:0 20px 60px rgba(0,0,0,.6)}
+#loc h2{margin:0 0 4px;font-size:24px;font-weight:500}
+#loc p{margin:0 0 14px;color:var(--text-dim);font-size:14px}
+#loc label{display:block;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--text-dim);margin:10px 0 4px}
+#loc select,#loc input{width:100%;box-sizing:border-box;background:rgba(0,0,0,.3);border:1px solid var(--panel-edge);border-radius:3px;padding:7px 9px;font-size:15px}
+#loc .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+#loc .acts{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap}
+#loc .err{color:#f0a06e;font-size:13px;margin-top:8px;min-height:1em}
+#toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 24px);transform:translateX(-50%);background:var(--panel);border:1px solid var(--panel-edge);padding:8px 16px;border-radius:3px;font-size:14px;opacity:0;transition:opacity .4s;pointer-events:none;white-space:nowrap}
+#toast.show{opacity:1}
+#hint{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 18px);transform:translateX(-50%);font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-dim);pointer-events:none;transition:opacity .6s}
+@media (max-width:760px){
+  #hdr{max-width:calc(100vw - 32px)}
+  #hdr h1{font-size:22px}
+  #hint{display:none}
+  #vis{width:calc(100vw - 32px);max-height:34vh}
+  #detail{top:auto;bottom:calc(env(safe-area-inset-bottom,0px) + 16px);right:16px;left:16px;width:auto;max-height:58vh;transform:translateY(24px)}
+  #detail.open{transform:none}
+  #detail.open ~ #vis{display:none}
+  #detail h2{font-size:26px}
+}
+</style>
+<!--HEAD-END--></head>
+<body>
+<div id="stage">
+  <canvas id="sky"></canvas>
+  <svg id="overlay" xmlns="http://www.w3.org/2000/svg">
+    <defs><filter id="rough" x="-10%" y="-10%" width="120%" height="120%"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="7" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.2" xChannelSelector="R" yChannelSelector="G"/></filter></defs>
+    <g id="artroot" class="art" filter="url(#rough)"></g>
+  </svg>
+</div>
+<div id="hint">Click a constellation · drag to turn the sky · scroll to zoom</div>
+<section id="hdr" class="panel" aria-label="Sky settings">
+  <h1>The Painted <em>Firmament</em></h1>
+  <p class="sub" id="where">Finding your sky…</p>
+  <div class="row">
+    <button class="btn" id="locBtn">Location</button>
+    <button class="btn" id="nowBtn">Now</button>
+    <button class="btn" id="modeBtn" aria-pressed="false">Mythic sky</button>
+  </div>
+  <div class="time"><span class="lbl" id="tlabel">now</span><input type="range" id="tslider" min="-12" max="12" step="0.25" value="0" aria-label="Hours from now"></div>
+</section>
+<aside id="detail" class="panel" aria-live="polite">
+  <p class="eyebrow">Constellation</p>
+  <h2 id="dName">Orion</h2>
+  <p class="latin" id="dTitle">The Hunter</p>
+  <p class="where" id="dWhere"></p>
+  <div class="seg" role="group" aria-label="View">
+    <button id="segSci" aria-pressed="true">Scientific</button>
+    <button id="segMyth" aria-pressed="false">Mythic</button>
+  </div>
+  <div id="sci"></div>
+  <div id="myth" hidden></div>
+  <div class="foot"><button class="btn" id="backBtn">Whole sky</button></div>
+</aside>
+<section id="vis" class="panel" aria-label="Visible now">
+  <header id="visHead"><h2>Above the horizon now</h2><span id="visCount"></span></header>
+  <ul id="visList"></ul>
+</section>
+<div id="loc" role="dialog" aria-modal="true" aria-labelledby="locTitle">
+  <div class="card">
+    <h2 id="locTitle">Where are you watching from?</h2>
+    <p>The map draws the sky above this point at the current moment. Pick a city, type coordinates, or let the browser find you.</p>
+    <label for="city">City</label>
+    <select id="city"></select>
+    <div class="two">
+      <div><label for="lat">Latitude</label><input id="lat" type="number" step="0.01" min="-90" max="90" placeholder="51.51"></div>
+      <div><label for="lon">Longitude</label><input id="lon" type="number" step="0.01" min="-180" max="180" placeholder="-0.13"></div>
+    </div>
+    <div class="err" id="locErr"></div>
+    <div class="acts"><button class="btn" id="geoBtn">Use my location</button><button class="btn primary" id="applyBtn">Set location</button></div>
+  </div>
+</div>
+<div id="toast"></div>
+<script>
+// Bright star catalog (J2000). key: [name, RA hours, Dec deg, V mag, distance ly, tint]
+// tint: r = orange/red giant, b = blue-white, y = yellow, w = white (default)
+const STARS = {
+  // Orion
+  aOri:["Betelgeuse",5.9195,7.407,0.45,550,"r"], bOri:["Rigel",5.2423,-8.2017,0.18,860,"b"],
+  gOri:["Bellatrix",5.4188,6.3497,1.64,250,"b"], dOri:["Mintaka",5.5334,-0.2991,2.25,1200,"b"],
+  eOri:["Alnilam",5.6036,-1.2019,1.69,2000,"b"], zOri:["Alnitak",5.6793,-1.9426,1.74,1260,"b"],
+  kOri:["Saiph",5.7959,-9.6696,2.07,650,"b"], lOri:["Meissa",5.5851,9.9342,3.39,1100,"b"],
+  p3Ori:["Tabit",4.8306,6.9614,3.19,26,"w"], p4Ori:["π⁴ Orionis",4.8536,5.6051,3.68,1250,"b"],
+  p5Ori:["π⁵ Orionis",4.9042,2.4406,3.71,1300,"b"], p2Ori:["π² Orionis",4.8438,8.9001,4.35,190,"w"],
+  p1Ori:["π¹ Orionis",4.9149,10.1508,4.64,120,"w"], hOri:["η Orionis",5.4076,-2.397,3.35,900,"b"],
+  mOri:["μ Orionis",6.0397,9.6474,4.12,150,"w"], xOri:["ξ Orionis",6.199,14.2085,4.45,600,"b"],
+  nOri:["ν Orionis",6.1264,14.7684,4.42,530,"b"], c1Ori:["χ¹ Orionis",5.9067,20.2762,4.39,28,"y"],
+  c2Ori:["χ² Orionis",6.0658,20.1384,4.63,4000,"b"],
+  // Ursa Major
+  aUMa:["Dubhe",11.0621,61.751,1.79,123,"y"], bUMa:["Merak",11.0307,56.3824,2.37,80,"w"],
+  gUMa:["Phecda",11.8972,53.6948,2.44,84,"w"], dUMa:["Megrez",12.2571,57.0326,3.31,81,"w"],
+  eUMa:["Alioth",12.9005,55.9598,1.77,81,"w"], zUMa:["Mizar",13.3988,54.9254,2.27,78,"w"],
+  hUMa:["Alkaid",13.7923,49.3133,1.86,101,"b"], "80UMa":["Alcor",13.4204,54.988,4.01,82,"w"],
+  iUMa:["Talitha",8.9868,48.0418,3.14,48,"w"], kUMa:["κ Ursae Majoris",9.0603,47.1567,3.6,420,"w"],
+  qUMa:["θ Ursae Majoris",9.5477,51.6773,3.17,44,"y"], lUMa:["Tania Borealis",10.2849,42.9145,3.45,138,"w"],
+  mUMa:["Tania Australis",10.3722,41.4995,3.06,230,"r"], nUMa:["Alula Borealis",11.3079,33.0943,3.49,400,"r"],
+  xUMa:["Alula Australis",11.3034,31.5292,3.79,29,"y"], yUMa:["ψ Ursae Majoris",11.1613,44.4985,3.01,145,"r"],
+  cUMa:["χ Ursae Majoris",11.7675,47.7794,3.71,196,"r"], uUMa:["υ Ursae Majoris",9.8496,59.0388,3.8,115,"w"],
+  oUMa:["Muscida",8.504,60.7182,3.36,180,"y"], "23UMa":["23 Ursae Majoris",9.5251,63.0618,3.67,75,"w"],
+  // Ursa Minor
+  aUMi:["Polaris",2.5303,89.2641,1.98,433,"y"], bUMi:["Kochab",14.8451,74.1555,2.08,131,"r"],
+  gUMi:["Pherkad",15.3455,71.834,3.05,487,"w"], dUMi:["Yildun",17.5369,86.5865,4.36,172,"w"],
+  eUMi:["ε Ursae Minoris",16.7661,82.0373,4.23,300,"y"], zUMi:["ζ Ursae Minoris",15.7343,77.7945,4.32,380,"w"],
+  hUMi:["η Ursae Minoris",16.2918,75.7553,4.95,97,"w"],
+  // Cassiopeia
+  aCas:["Schedar",0.6751,56.5373,2.24,228,"r"], bCas:["Caph",0.153,59.1498,2.28,54,"y"],
+  gCas:["Navi",0.9451,60.7167,2.47,550,"b"], dCas:["Ruchbah",1.4303,60.2353,2.68,99,"w"],
+  eCas:["Segin",1.9066,63.6701,3.35,440,"b"],
+  // Cepheus
+  aCep:["Alderamin",21.3097,62.5856,2.45,49,"w"], bCep:["Alfirk",21.4777,70.5607,3.23,690,"b"],
+  gCep:["Errai",23.6558,77.6323,3.21,45,"y"], dCep:["δ Cephei",22.4863,58.4152,4.07,890,"y"],
+  zCep:["ζ Cephei",22.1809,58.2011,3.39,840,"r"], iCep:["ι Cephei",22.828,66.2007,3.5,115,"y"],
+  hCep:["η Cephei",20.7541,61.8388,3.41,47,"y"],
+  // Draco
+  gDra:["Eltanin",17.9434,51.4889,2.24,154,"r"], bDra:["Rastaban",17.5072,52.3014,2.79,380,"y"],
+  nDra:["Kuma",17.5362,55.184,4.88,99,"w"], xDra:["Grumium",17.8921,56.8726,3.75,112,"r"],
+  dDra:["Altais",19.2093,67.6615,3.07,97,"y"], eDra:["ε Draconis",19.8028,70.2678,3.83,148,"y"],
+  cDra:["χ Draconis",18.351,72.7329,3.57,26,"y"], zDra:["Aldhibah",17.1465,65.7146,3.17,330,"b"],
+  hDra:["Athebyne",16.3993,61.5142,2.73,92,"y"], qDra:["θ Draconis",16.0316,58.5653,4.01,68,"y"],
+  iDra:["Edasich",15.4155,58.9661,3.29,101,"r"], aDra:["Thuban",14.0731,64.3758,3.67,303,"w"],
+  kDra:["κ Draconis",12.5581,69.7882,3.87,490,"b"], lDra:["Giausar",11.5233,69.3311,3.84,333,"r"],
+  // Cygnus
+  aCyg:["Deneb",20.6905,45.2803,1.25,2600,"w"], gCyg:["Sadr",20.3705,40.2567,2.23,1800,"y"],
+  eCyg:["Gienah",20.7702,33.9703,2.48,72,"r"], dCyg:["Fawaris",19.7496,45.1308,2.87,165,"w"],
+  bCyg:["Albireo",19.512,27.9597,3.05,430,"r"], hCyg:["η Cygni",19.9384,35.0834,3.89,139,"r"],
+  zCyg:["ζ Cygni",21.2156,30.2269,3.21,143,"y"], iCyg:["ι Cygni",19.4952,51.7296,3.77,122,"w"],
+  kCyg:["κ Cygni",19.2853,53.3685,3.8,124,"y"],
+  // Lyra
+  aLyr:["Vega",18.6156,38.7837,0.03,25,"b"], bLyr:["Sheliak",18.8347,33.3627,3.52,960,"b"],
+  gLyr:["Sulafat",18.9824,32.6896,3.25,620,"b"], dLyr:["δ² Lyrae",18.9084,36.8986,4.3,740,"r"],
+  zLyr:["ζ Lyrae",18.7462,37.6051,4.34,156,"w"], eLyr:["ε Lyrae",18.7391,39.67,4.7,160,"w"],
+  // Aquila
+  aAql:["Altair",19.8464,8.8683,0.76,17,"w"], gAql:["Tarazed",19.771,10.6133,2.72,460,"r"],
+  bAql:["Alshain",19.9219,6.4068,3.71,45,"y"], dAql:["δ Aquilae",19.425,3.1148,3.36,50,"w"],
+  zAql:["Okab",19.0902,13.8634,2.99,83,"w"], eAql:["ε Aquilae",18.9937,15.0683,4.02,150,"r"],
+  qAql:["θ Aquilae",20.1884,-0.8215,3.24,290,"b"], lAql:["λ Aquilae",19.1039,-4.8825,3.43,125,"b"],
+  hAql:["η Aquilae",19.8746,1.0057,3.9,1200,"y"],
+  // Hercules
+  bHer:["Kornephoros",16.5037,21.4897,2.78,139,"y"], zHer:["ζ Herculis",16.6883,31.6028,2.81,35,"y"],
+  dHer:["Sarin",17.2504,24.8393,3.12,75,"w"], pHer:["π Herculis",17.2508,36.8092,3.16,377,"r"],
+  aHer:["Rasalgethi",17.2441,14.3903,3.35,360,"r"], mHer:["μ Herculis",17.7743,27.7207,3.42,27,"y"],
+  hHer:["η Herculis",16.7149,38.9223,3.48,112,"y"], xHer:["ξ Herculis",17.9625,29.2479,3.7,135,"y"],
+  gHer:["γ Herculis",16.3653,19.153,3.75,195,"w"], iHer:["ι Herculis",17.6577,46.0064,3.8,455,"b"],
+  oHer:["ο Herculis",18.1256,28.7625,3.83,340,"b"], qHer:["θ Herculis",17.9376,37.2505,3.86,670,"r"],
+  tHer:["τ Herculis",16.3291,46.3133,3.89,310,"b"], eHer:["ε Herculis",17.0047,30.9263,3.92,155,"w"],
+  sHer:["σ Herculis",16.5682,42.437,4.2,300,"w"], lHer:["Maasym",17.5124,26.1106,4.41,370,"r"],
+  // Boötes
+  aBoo:["Arcturus",14.261,19.1824,-0.05,37,"r"], eBoo:["Izar",14.7498,27.0742,2.37,202,"r"],
+  hBoo:["Muphrid",13.9115,18.3977,2.68,37,"y"], gBoo:["Seginus",14.5346,38.3083,3.03,85,"w"],
+  dBoo:["δ Boötis",15.2583,33.3149,3.47,117,"y"], bBoo:["Nekkar",15.0324,40.3906,3.5,225,"y"],
+  rBoo:["ρ Boötis",14.5305,30.3711,3.58,160,"r"], zBoo:["ζ Boötis",14.6858,13.7283,3.78,180,"w"],
+  tBoo:["τ Boötis",13.7847,17.457,4.5,51,"y"], uBoo:["υ Boötis",13.8244,15.7977,4.05,250,"r"],
+  qBoo:["Asellus Primus",14.4183,51.8507,4.05,47,"w"], lBoo:["λ Boötis",14.2724,46.0883,4.18,99,"w"],
+  // Corona Borealis
+  aCrB:["Alphecca",15.5781,26.7147,2.23,75,"w"], bCrB:["Nusakan",15.4638,29.1058,3.68,114,"w"],
+  gCrB:["γ Coronae Borealis",15.7124,26.2957,3.84,146,"w"], qCrB:["θ Coronae Borealis",15.5488,31.3592,4.14,375,"b"],
+  dCrB:["δ Coronae Borealis",15.8264,26.0683,4.63,165,"y"], eCrB:["ε Coronae Borealis",15.9598,26.8778,4.15,230,"r"],
+  iCrB:["ι Coronae Borealis",16.0244,29.8511,4.99,310,"w"],
+  // Perseus
+  aPer:["Mirfak",3.4054,49.8612,1.79,510,"y"], bPer:["Algol",3.1361,40.9556,2.12,90,"b"],
+  zPer:["Menkib",3.9022,31.8836,2.85,750,"b"], ePer:["ε Persei",3.9642,40.0103,2.89,640,"b"],
+  gPer:["γ Persei",3.0799,53.5064,2.93,243,"y"], dPer:["δ Persei",3.7152,47.7876,3.01,520,"b"],
+  rPer:["Gorgonea Tertia",3.0855,38.8403,3.39,308,"r"], hPer:["Miram",2.8447,55.8955,3.76,1300,"r"],
+  kPer:["Misam",3.1583,44.8575,3.8,113,"y"], oPer:["Atik",3.7386,32.2882,3.83,1100,"b"],
+  xPer:["ξ Persei",3.9808,35.7911,4.04,1200,"b"], iPer:["ι Persei",3.1522,49.6133,4.05,34,"y"],
+  qPer:["θ Persei",2.7365,49.2285,4.12,37,"w"], tPer:["τ Persei",2.9043,52.7625,3.95,250,"y"],
+  // Andromeda
+  aAnd:["Alpheratz",0.1398,29.0904,2.06,97,"b"], bAnd:["Mirach",1.1622,35.6206,2.05,197,"r"],
+  gAnd:["Almach",2.065,42.3297,2.1,350,"r"], dAnd:["δ Andromedae",0.6555,30.861,3.27,105,"r"],
+  "51And":["Nembus",1.6332,48.6282,3.57,177,"r"], mAnd:["μ Andromedae",0.9457,38.4995,3.87,130,"w"],
+  zAnd:["ζ Andromedae",0.7898,24.2672,4.06,181,"r"], hAnd:["η Andromedae",0.9526,23.4175,4.42,245,"y"],
+  pAnd:["π Andromedae",0.6144,33.7193,4.36,600,"b"], nAnd:["ν Andromedae",0.8302,41.079,4.53,620,"b"],
+  eAnd:["ε Andromedae",0.6428,29.3125,4.37,165,"y"],
+  // Pegasus
+  aPeg:["Markab",23.0793,15.2053,2.49,133,"b"], bPeg:["Scheat",23.0629,28.0828,2.42,196,"r"],
+  gPeg:["Algenib",0.2206,15.1836,2.83,390,"b"], ePeg:["Enif",21.7364,9.875,2.39,690,"r"],
+  hPeg:["Matar",22.7167,30.2213,2.94,215,"y"], zPeg:["Homam",22.6912,10.8314,3.4,210,"b"],
+  mPeg:["Sadalbari",22.8334,24.6016,3.48,106,"y"], qPeg:["Biham",22.17,6.1979,3.53,92,"w"],
+  iPeg:["ι Pegasi",22.1167,25.3451,3.76,38,"y"], lPeg:["λ Pegasi",22.7752,23.5657,3.95,395,"y"],
+  kPeg:["κ Pegasi",21.7443,25.645,4.13,115,"y"], pPeg:["π Pegasi",22.165,33.1783,4.29,290,"y"],
+  // Auriga
+  aAur:["Capella",5.2782,45.998,0.08,43,"y"], bAur:["Menkalinan",5.9921,44.9474,1.9,82,"w"],
+  qAur:["Mahasim",5.9953,37.2125,2.62,166,"w"], iAur:["Hassaleh",4.9499,33.1662,2.69,490,"r"],
+  eAur:["Almaaz",5.0328,43.8233,3.03,2000,"w"], hAur:["Haedus",5.1086,41.2345,3.18,243,"b"],
+  zAur:["Saclateni",5.0341,41.0757,3.75,790,"r"], dAur:["δ Aurigae",5.9925,54.2847,3.72,140,"r"],
+  // Taurus
+  aTau:["Aldebaran",4.5987,16.5093,0.87,65,"r"], bTau:["Elnath",5.4382,28.6075,1.65,134,"b"],
+  zTau:["Tianguan",5.6274,21.1425,3.0,440,"b"], q2Tau:["Chamukuy",4.4777,15.8709,3.4,150,"w"],
+  gTau:["Prima Hyadum",4.3291,15.6276,3.65,154,"y"], d1Tau:["Secunda Hyadum",4.3829,17.5425,3.77,156,"y"],
+  eTau:["Ain",4.4769,19.1804,3.53,155,"y"], lTau:["λ Tauri",4.0113,12.4903,3.41,480,"b"],
+  xTau:["ξ Tauri",3.453,9.7328,3.73,210,"b"], oTau:["ο Tauri",3.4116,9.0289,3.61,212,"y"],
+  nTau:["ν Tauri",4.0523,5.9891,3.91,117,"w"],
+  hTau:["Alcyone",3.7914,24.1051,2.87,440,"b"], "17Tau":["Electra",3.748,24.1133,3.7,440,"b"],
+  "27Tau":["Atlas",3.8181,24.0534,3.62,440,"b"], "20Tau":["Maia",3.7628,24.3678,3.87,440,"b"],
+  "23Tau":["Merope",3.7721,23.9483,4.18,440,"b"], "19Tau":["Taygeta",3.7534,24.4673,4.3,440,"b"],
+  // Gemini
+  bGem:["Pollux",7.7553,28.0262,1.14,34,"r"], aGem:["Castor",7.5767,31.8883,1.58,51,"w"],
+  gGem:["Alhena",6.6285,16.3993,1.93,109,"w"], mGem:["Tejat",6.3827,22.5136,2.87,230,"r"],
+  eGem:["Mebsuta",6.7322,25.1311,3.06,840,"y"], dGem:["Wasat",7.3354,21.9821,3.53,60,"w"],
+  hGem:["Propus",6.248,22.5068,3.31,350,"r"], kGem:["κ Geminorum",7.7406,24.398,3.57,143,"y"],
+  xGem:["Alzirr",6.7548,12.8956,3.36,59,"w"], lGem:["λ Geminorum",7.3016,16.5403,3.58,100,"w"],
+  qGem:["θ Geminorum",6.8792,33.9613,3.6,190,"w"], iGem:["ι Geminorum",7.4285,27.7981,3.79,120,"y"],
+  tGem:["τ Geminorum",7.1857,30.2452,4.41,300,"y"], uGem:["υ Geminorum",7.5985,26.8957,4.06,240,"r"],
+  zGem:["Mekbuda",7.0685,20.5703,3.9,1200,"y"], nGem:["ν Geminorum",6.4828,20.2121,4.15,540,"b"],
+  // Canis Major
+  aCMa:["Sirius",6.7525,-16.7161,-1.46,8.6,"w"], eCMa:["Adhara",6.9771,-28.9721,1.5,430,"b"],
+  dCMa:["Wezen",7.1399,-26.3932,1.84,1600,"y"], bCMa:["Mirzam",6.3783,-17.9559,1.98,500,"b"],
+  hCMa:["Aludra",7.4016,-29.3031,2.45,2000,"b"], zCMa:["Furud",6.3383,-30.0634,3.02,360,"b"],
+  o2CMa:["ο² Canis Majoris",7.0504,-23.8333,3.02,2800,"b"], sCMa:["Unurgunite",7.0286,-27.9348,3.47,1200,"r"],
+  o1CMa:["ο¹ Canis Majoris",6.9019,-24.1844,3.87,2500,"y"], n2CMa:["ν² Canis Majoris",6.6112,-19.2557,3.95,64,"y"],
+  qCMa:["θ Canis Majoris",6.9033,-12.0386,4.07,250,"r"], iCMa:["ι Canis Majoris",6.9351,-17.0542,4.37,2500,"b"],
+  gCMa:["Muliphein",7.0627,-15.6333,4.11,440,"b"],
+  // Canis Minor
+  aCMi:["Procyon",7.655,5.225,0.34,11.5,"y"], bCMi:["Gomeisa",7.4524,8.2893,2.89,160,"b"],
+  // Leo
+  aLeo:["Regulus",10.1395,11.9672,1.36,79,"b"], bLeo:["Denebola",11.8177,14.572,2.14,36,"w"],
+  gLeo:["Algieba",10.3329,19.8415,2.01,130,"r"], dLeo:["Zosma",11.2351,20.5237,2.56,58,"w"],
+  eLeo:["Algenubi",9.7642,23.7743,2.97,250,"y"], qLeo:["Chertan",11.2373,15.4296,3.33,165,"w"],
+  zLeo:["Adhafera",10.2782,23.4173,3.43,270,"y"], hLeo:["η Leonis",10.1222,16.7627,3.48,1300,"w"],
+  oLeo:["Subra",9.6858,9.8924,3.52,135,"y"], rLeo:["ρ Leonis",10.5469,9.3066,3.84,5000,"b"],
+  mLeo:["Rasalas",9.8794,26.007,3.88,125,"r"], iLeo:["ι Leonis",11.398,10.5296,3.94,79,"y"],
+  sLeo:["σ Leonis",11.3523,6.0294,4.05,210,"b"], lLeo:["Alterf",9.5287,22.968,4.32,330,"r"],
+  // Cancer
+  aCnc:["Acubens",8.9748,11.8577,4.25,175,"w"], bCnc:["Tarf",8.2753,9.1856,3.52,290,"r"],
+  gCnc:["Asellus Borealis",8.7215,21.4685,4.66,180,"w"], dCnc:["Asellus Australis",8.7448,18.1543,3.94,130,"r"],
+  iCnc:["ι Cancri",8.7784,28.7599,4.02,330,"y"],
+  // Virgo
+  aVir:["Spica",13.4199,-11.1613,0.97,250,"b"], gVir:["Porrima",12.6943,-1.4494,2.74,38,"w"],
+  eVir:["Vindemiatrix",13.0363,10.9591,2.83,110,"y"], dVir:["Minelauva",12.9265,3.3976,3.38,200,"r"],
+  zVir:["Heze",13.5783,-0.5958,3.37,74,"w"], bVir:["Zavijava",11.8449,1.7647,3.61,36,"y"],
+  hVir:["Zaniah",12.3319,-0.6669,3.89,265,"w"], nVir:["ν Virginis",11.7644,6.5294,4.03,300,"r"],
+  iVir:["Syrma",14.2669,-6.0006,4.08,70,"w"], mVir:["μ Virginis",14.7177,-5.658,3.88,60,"y"],
+  qVir:["θ Virginis",13.1657,-5.539,4.38,320,"w"], tVir:["τ Virginis",14.0272,1.5444,4.26,220,"w"],
+  "109Vir":["109 Virginis",14.7717,1.8929,3.72,130,"w"], kVir:["Kang",14.2145,-10.2739,4.18,255,"r"],
+  // Libra
+  bLib:["Zubeneschamali",15.2834,-9.3829,2.61,185,"b"], aLib:["Zubenelgenubi",14.8479,-16.0418,2.75,77,"w"],
+  sLib:["Brachium",15.0678,-25.2819,3.29,290,"r"], gLib:["Zubenelhakrabi",15.592,-14.7895,3.91,160,"y"],
+  uLib:["υ Librae",15.6167,-28.1351,3.58,195,"r"], tLib:["τ Librae",15.6446,-29.7777,3.66,365,"b"],
+  // Scorpius
+  aSco:["Antares",16.4901,-26.432,1.06,550,"r"], lSco:["Shaula",17.5601,-37.1038,1.62,570,"b"],
+  qSco:["Sargas",17.622,-42.9978,1.86,270,"y"], dSco:["Dschubba",16.0056,-22.6217,2.29,400,"b"],
+  eSco:["Larawag",16.8361,-34.2932,2.29,65,"r"], kSco:["Girtab",17.7081,-39.03,2.39,480,"b"],
+  bSco:["Acrab",16.0906,-19.8054,2.56,400,"b"], uSco:["Lesath",17.5127,-37.2958,2.7,580,"b"],
+  tSco:["Paikauhale",16.5981,-28.216,2.82,430,"b"], pSco:["Fang",15.9809,-26.1141,2.89,460,"b"],
+  sSco:["Alniyat",16.3531,-25.5928,2.9,570,"b"], i1Sco:["ι¹ Scorpii",17.793,-40.127,3.03,1800,"y"],
+  m1Sco:["Xamidimura",16.8645,-38.0475,3.0,500,"b"], hSco:["η Scorpii",17.2026,-43.2392,3.32,73,"y"],
+  z2Sco:["ζ² Scorpii",16.9097,-42.3613,3.62,150,"r"], nSco:["Jabbah",16.1998,-19.4605,4.0,470,"b"],
+  rSco:["Iklil",15.9487,-29.2141,3.87,470,"b"], GSco:["Fuyue",17.8261,-37.0432,3.19,125,"r"],
+  // Sagittarius
+  eSgr:["Kaus Australis",18.4029,-34.3846,1.85,143,"b"], sSgr:["Nunki",18.9211,-26.2967,2.02,228,"b"],
+  zSgr:["Ascella",19.0435,-29.8801,2.6,88,"w"], dSgr:["Kaus Media",18.3499,-29.8281,2.7,350,"r"],
+  lSgr:["Kaus Borealis",18.4662,-25.4217,2.81,78,"r"], pSgr:["Albaldah",19.1627,-21.0236,2.89,510,"y"],
+  gSgr:["Alnasl",18.0968,-30.4241,2.99,97,"r"], hSgr:["η Sagittarii",18.2939,-36.7617,3.11,146,"r"],
+  fSgr:["φ Sagittarii",18.7594,-26.9908,3.17,240,"b"], tSgr:["τ Sagittarii",19.1157,-27.6704,3.32,120,"r"],
+  x2Sgr:["ξ² Sagittarii",18.9617,-21.1067,3.51,370,"r"], oSgr:["ο Sagittarii",19.0779,-21.7415,3.77,140,"y"],
+  mSgr:["Polis",18.2294,-21.0588,3.86,3000,"b"], r1Sgr:["ρ¹ Sagittarii",19.3631,-17.8472,3.93,120,"w"],
+  b1Sgr:["Arkab Prior",19.3773,-44.459,3.96,380,"b"], aSgr:["Rukbat",19.398,-40.6159,3.97,180,"b"],
+  // Capricornus
+  dCap:["Deneb Algedi",21.784,-16.1273,2.85,39,"w"], bCap:["Dabih",20.3501,-14.7814,3.05,330,"y"],
+  aCap:["Algedi",20.3011,-12.5447,3.58,106,"y"], gCap:["Nashira",21.6682,-16.6623,3.69,157,"w"],
+  zCap:["ζ Capricorni",21.4444,-22.4113,3.77,400,"y"], qCap:["θ Capricorni",21.099,-17.233,4.08,160,"w"],
+  wCap:["ω Capricorni",20.8635,-26.9192,4.12,630,"r"], yCap:["ψ Capricorni",20.7681,-25.2708,4.13,48,"y"],
+  iCap:["ι Capricorni",21.3707,-16.8345,4.28,200,"y"], eCap:["ε Capricorni",21.6185,-19.466,4.5,1000,"b"],
+  // Aquarius
+  bAqr:["Sadalsuud",21.5259,-5.5712,2.9,540,"y"], aAqr:["Sadalmelik",22.0964,-0.3199,2.95,520,"y"],
+  dAqr:["Skat",22.9108,-15.8208,3.27,160,"w"], gAqr:["Sadachbia",22.3609,-1.3873,3.86,164,"w"],
+  zAqr:["ζ Aquarii",22.4795,-0.02,3.65,92,"w"], hAqr:["η Aquarii",22.5893,-0.1174,4.02,168,"b"],
+  pAqr:["Seat",22.4213,1.3774,4.66,780,"b"], eAqr:["Albali",20.7946,-9.4958,3.78,208,"w"],
+  lAqr:["Hydor",22.8766,-7.5796,3.73,390,"r"], qAqr:["Ancha",22.28,-7.7833,4.17,190,"y"],
+  iAqr:["ι Aquarii",22.1064,-13.8696,4.29,170,"b"], tAqr:["τ Aquarii",22.8265,-13.5925,4.05,320,"r"],
+  fAqr:["φ Aquarii",23.2386,-6.0489,4.22,220,"r"], y1Aqr:["ψ¹ Aquarii",23.2645,-9.0876,4.24,150,"r"],
+  "88Aqr":["88 Aquarii",23.1573,-21.1725,3.68,240,"r"],
+  // Pisces
+  aPsc:["Alrescha",2.0341,2.7637,3.82,140,"w"], hPsc:["Kullat Nunu",1.5247,15.3458,3.62,350,"y"],
+  gPsc:["γ Piscium",23.2861,3.2822,3.69,138,"y"], wPsc:["ω Piscium",23.9886,6.8633,4.01,105,"w"],
+  iPsc:["ι Piscium",23.6656,5.6262,4.13,45,"w"], qPsc:["θ Piscium",23.4661,6.3789,4.28,160,"r"],
+  bPsc:["Fumalsamakah",23.0655,3.8203,4.53,410,"b"], lPsc:["λ Piscium",23.7005,1.7805,4.5,100,"w"],
+  kPsc:["κ Piscium",23.4485,1.2556,4.94,160,"w"], oPsc:["Torcular",1.7562,9.1577,4.26,260,"y"],
+  nPsc:["ν Piscium",1.6906,5.4875,4.44,370,"r"], ePsc:["ε Piscium",1.0468,7.8901,4.28,180,"y"],
+  dPsc:["δ Piscium",0.8114,7.5851,4.43,310,"r"], tPsc:["τ Piscium",1.1943,30.0897,4.51,160,"r"],
+  uPsc:["υ Piscium",1.3243,27.264,4.76,300,"w"], fPsc:["φ Piscium",1.2292,24.5837,4.65,380,"r"],
+  cPsc:["χ Piscium",1.1911,21.0347,4.66,440,"r"], zPsc:["Revati",1.229,7.575,5.2,150,"w"],
+  // Aries
+  aAri:["Hamal",2.1196,23.4624,2.0,66,"r"], bAri:["Sheratan",1.9107,20.808,2.64,60,"w"],
+  gAri:["Mesarthim",1.8922,19.2939,3.88,164,"w"], "41Ari":["Bharani",2.833,27.2607,3.63,166,"b"],
+  dAri:["Botein",3.1938,19.7267,4.35,170,"r"],
+  // Ophiuchus
+  aOph:["Rasalhague",17.5822,12.56,2.08,49,"w"], hOph:["Sabik",17.173,-15.7249,2.43,88,"w"],
+  zOph:["ζ Ophiuchi",16.6193,-10.5671,2.56,365,"b"], dOph:["Yed Prior",16.2393,-3.6944,2.74,170,"r"],
+  bOph:["Cebalrai",17.7245,4.5673,2.77,82,"r"], kOph:["κ Ophiuchi",16.9611,9.3751,3.2,92,"r"],
+  eOph:["Yed Posterior",16.3053,-4.6925,3.24,106,"y"], qOph:["θ Ophiuchi",17.366,-24.9996,3.27,435,"b"],
+  nOph:["ν Ophiuchi",17.9838,-9.7737,3.34,150,"y"], gOph:["γ Ophiuchi",17.7981,2.7071,3.75,100,"w"],
+  lOph:["Marfik",16.5153,1.984,3.82,170,"w"], xOph:["ξ Ophiuchi",17.3505,-21.113,4.39,57,"y"],
+  // Serpens
+  aSer:["Unukalhai",15.7378,6.4256,2.63,74,"r"], bSer:["β Serpentis",15.7698,15.4216,3.65,155,"w"],
+  gSer:["γ Serpentis",15.9407,15.6616,3.85,36,"y"], dSer:["δ Serpentis",15.5804,10.539,3.8,210,"w"],
+  eSer:["ε Serpentis",15.8469,4.4776,3.71,70,"w"], mSer:["μ Serpentis",15.8271,-3.43,3.54,156,"w"],
+  hSer:["η Serpentis",18.3552,-2.8989,3.26,60,"y"], qSer:["Alya",18.9371,4.2037,4.03,132,"w"],
+  xSer:["ξ Serpentis",17.6269,-15.3984,3.54,105,"w"], nSer:["ν Serpentis",17.3479,-12.8471,4.33,190,"w"],
+  oSer:["ο Serpentis",17.69,-12.8755,4.26,175,"w"],
+  // Delphinus
+  bDel:["Rotanev",20.626,14.5951,3.63,101,"y"], aDel:["Sualocin",20.6605,15.9121,3.77,240,"b"],
+  gDel:["γ Delphini",20.7776,16.1242,4.27,101,"y"], dDel:["δ Delphini",20.7243,15.0746,4.43,200,"w"],
+  eDel:["Aldulfin",20.553,11.3032,4.03,360,"b"],
+  // Corvus
+  gCrv:["Gienah",12.2634,-17.5419,2.59,154,"b"], bCrv:["Kraz",12.5731,-23.3968,2.65,146,"y"],
+  dCrv:["Algorab",12.4977,-16.5154,2.95,87,"w"], eCrv:["Minkar",12.1683,-22.6197,3.0,320,"r"],
+  aCrv:["Alchiba",12.1402,-24.7288,4.02,49,"w"],
+  // Crux
+  aCru:["Acrux",12.4433,-63.0991,0.77,320,"b"], bCru:["Mimosa",12.7953,-59.6888,1.25,280,"b"],
+  gCru:["Gacrux",12.5194,-57.1132,1.63,88,"r"], dCru:["Imai",12.2524,-58.7489,2.79,345,"b"],
+  eCru:["Ginan",12.3563,-60.4011,3.59,230,"r"],
+  // Centaurus
+  aCen:["Rigil Kentaurus",14.6601,-60.834,-0.27,4.4,"y"], bCen:["Hadar",14.0637,-60.373,0.61,390,"b"],
+  qCen:["Menkent",14.1114,-36.37,2.06,59,"r"], gCen:["Muhlifain",12.6919,-48.9597,2.17,130,"w"],
+  eCen:["ε Centauri",13.6648,-53.4664,2.3,430,"b"], hCen:["η Centauri",14.5918,-42.1578,2.31,310,"b"],
+  zCen:["ζ Centauri",13.9256,-47.2884,2.55,385,"b"], dCen:["δ Centauri",12.1394,-50.7224,2.58,410,"b"],
+  iCen:["ι Centauri",13.3433,-36.7123,2.75,59,"w"], kCen:["κ Centauri",14.986,-42.1042,3.13,540,"b"],
+  lCen:["λ Centauri",11.596,-63.0198,3.11,420,"b"], mCen:["μ Centauri",13.8266,-42.4737,3.04,510,"b"],
+  nCen:["ν Centauri",13.8226,-41.6877,3.41,475,"b"], pCen:["π Centauri",11.351,-54.4913,3.9,320,"b"],
+  sCen:["σ Centauri",12.4674,-50.2306,3.91,440,"b"],
+  // Carina
+  aCar:["Canopus",6.3992,-52.6957,-0.74,310,"w"], bCar:["Miaplacidus",9.22,-69.7172,1.67,113,"w"],
+  eCar:["Avior",8.3752,-59.5095,1.86,610,"r"], iCar:["Aspidiske",9.2848,-59.2752,2.21,690,"w"],
+  qCar:["θ Carinae",10.7159,-64.3945,2.74,460,"b"], uCar:["υ Carinae",9.785,-65.072,2.92,1600,"w"],
+  wCar:["ω Carinae",10.2283,-70.038,3.29,340,"b"], pCar:["p Carinae",10.5339,-61.6853,3.3,1600,"b"],
+  qqCar:["q Carinae",10.2856,-61.3325,3.39,730,"r"], cCar:["χ Carinae",7.9463,-52.9822,3.46,390,"b"],
+  // Eridanus
+  aEri:["Achernar",1.6286,-57.2367,0.46,139,"b"], bEri:["Cursa",5.1309,-5.0864,2.79,89,"w"],
+  qEri:["Acamar",2.9711,-40.3047,2.88,160,"w"], gEri:["Zaurak",3.9672,-13.5085,2.95,200,"r"],
+  dEri:["Rana",3.7208,-9.7634,3.54,29,"y"], eEri:["ε Eridani",3.5486,-9.4583,3.73,10.5,"y"],
+  hEri:["Azha",2.9404,-8.8981,3.89,135,"r"], t4Eri:["τ⁴ Eridani",3.3253,-21.7579,3.69,300,"r"],
+  o1Eri:["Beid",4.198,-6.8375,4.04,125,"w"], nEri:["ν Eridani",4.6058,-3.3525,3.93,560,"b"],
+  mEri:["μ Eridani",4.7584,-3.2545,4.02,530,"b"], "53Eri":["Sceptrum",4.6357,-14.304,3.87,110,"r"],
+  iEri:["ι Eridani",2.6777,-39.8556,4.11,145,"y"], kEri:["κ Eridani",2.4494,-47.7038,4.24,530,"b"],
+  cEri:["χ Eridani",1.9327,-51.6089,3.7,57,"y"], fEri:["φ Eridani",2.2751,-51.5122,3.56,155,"b"],
+  zEri:["ζ Eridani",3.2653,-8.8197,4.8,120,"w"], pEri:["π Eridani",3.7692,-12.1017,4.42,500,"r"],
+  u2Eri:["Theemin",4.5925,-30.5623,3.82,210,"y"], t1Eri:["τ¹ Eridani",2.7517,-18.5726,4.47,46,"w"],
+  t6Eri:["τ⁶ Eridani",3.7813,-23.2486,4.23,58,"w"],
+  // Cetus
+  bCet:["Diphda",0.7265,-17.9866,2.04,96,"y"], aCet:["Menkar",3.038,4.0897,2.53,250,"r"],
+  oCet:["Mira",2.3224,-2.9776,3.0,300,"r"], hCet:["Deneb Algenubi",1.1432,-10.1821,3.45,120,"y"],
+  gCet:["Kaffaljidhma",2.7217,3.2358,3.47,80,"w"], tCet:["τ Ceti",1.7343,-15.9375,3.5,12,"y"],
+  iCet:["ι Ceti",0.3237,-8.8239,3.56,275,"y"], qCet:["θ Ceti",1.4004,-8.1832,3.6,115,"y"],
+  zCet:["Baten Kaitos",1.8577,-10.335,3.73,235,"y"], uCet:["υ Ceti",2.0,-21.0777,4.0,300,"r"],
+  dCet:["δ Ceti",2.6583,0.3285,4.07,650,"b"], mCet:["μ Ceti",2.749,10.1142,4.27,84,"w"],
+  x2Cet:["ξ² Ceti",2.4695,8.4601,4.28,180,"b"], lCet:["λ Ceti",2.9953,8.9074,4.7,420,"b"],
+  // Lepus
+  aLep:["Arneb",5.5455,-17.8223,2.58,2200,"w"], bLep:["Nihal",5.4708,-20.7594,2.84,160,"y"],
+  eLep:["ε Leporis",5.091,-22.3711,3.19,213,"r"], mLep:["μ Leporis",5.2155,-16.2054,3.31,186,"b"],
+  zLep:["ζ Leporis",5.7826,-14.8219,3.55,70,"w"], gLep:["γ Leporis",5.741,-22.4485,3.6,29,"y"],
+  hLep:["η Leporis",5.9403,-14.1677,3.71,49,"w"], dLep:["δ Leporis",5.8551,-20.8794,3.81,115,"y"],
+  lLep:["λ Leporis",5.3268,-13.1766,4.29,850,"b"], kLep:["κ Leporis",5.2202,-12.9414,4.36,560,"b"],
+  // Piscis Austrinus
+  aPsA:["Fomalhaut",22.9608,-29.6222,1.16,25,"w"], ePsA:["ε Piscis Austrini",22.6776,-27.0436,4.17,400,"b"],
+  dPsA:["δ Piscis Austrini",22.9325,-32.5398,4.2,170,"y"], bPsA:["β Piscis Austrini",22.5251,-32.3462,4.29,140,"w"],
+  iPsA:["ι Piscis Austrini",21.7493,-33.0257,4.34,205,"w"], gPsA:["γ Piscis Austrini",22.8753,-32.8754,4.46,220,"w"],
+  mPsA:["μ Piscis Austrini",22.1394,-32.9883,4.5,130,"w"],
+  // Hydra
+  aHya:["Alphard",9.4598,-8.6586,1.98,180,"r"], zHya:["ζ Hydrae",8.9232,5.9455,3.11,167,"y"],
+  eHya:["Ashlesha",8.7797,6.4189,3.38,130,"y"], dHya:["δ Hydrae",8.6276,5.7037,4.16,160,"w"],
+  sHya:["Minchir",8.6437,3.3414,4.44,350,"r"], hHya:["η Hydrae",8.7204,3.3986,4.3,590,"b"],
+  qHya:["θ Hydrae",9.2399,2.3143,3.88,130,"w"], iHya:["ι Hydrae",9.6648,-1.1428,3.91,260,"r"],
+  u1Hya:["υ¹ Hydrae",9.858,-14.8464,4.12,270,"y"], lHya:["λ Hydrae",10.1764,-12.354,3.61,115,"r"],
+  mHya:["μ Hydrae",10.4349,-16.8365,3.81,250,"r"], nHya:["ν Hydrae",10.8271,-16.1936,3.11,140,"r"],
+  xHya:["ξ Hydrae",11.55,-31.8576,3.54,130,"y"], bHya:["β Hydrae",11.8818,-33.9081,4.28,365,"b"],
+  gHya:["γ Hydrae",13.3153,-23.1715,3.0,135,"y"], pHya:["π Hydrae",14.1062,-26.6824,3.27,100,"r"],
+  // Coma Berenices
+  bCom:["β Comae Berenices",13.198,27.8781,4.26,30,"y"], aCom:["Diadem",13.1665,17.5294,4.32,58,"w"],
+  gCom:["γ Comae Berenices",12.449,28.2685,4.36,170,"r"],
+  // Canes Venatici
+  aCVn:["Cor Caroli",12.9338,38.3183,2.9,115,"w"], bCVn:["Chara",12.5625,41.3575,4.26,27,"y"],
+  // Grus
+  aGru:["Alnair",22.1372,-46.961,1.74,101,"b"], bGru:["Tiaki",22.7111,-46.8846,2.1,170,"r"],
+  gGru:["Aldhanab",21.8988,-37.3648,3.01,210,"b"], d1Gru:["δ¹ Gruis",22.4869,-43.4955,3.97,300,"y"],
+  eGru:["ε Gruis",22.8092,-51.3169,3.49,130,"w"], iGru:["ι Gruis",23.1727,-45.2467,3.9,185,"r"],
+  // Phoenix
+  aPhe:["Ankaa",0.4381,-42.3061,2.4,85,"r"], bPhe:["β Phoenicis",1.1014,-46.7185,3.32,200,"y"],
+  gPhe:["γ Phoenicis",1.4727,-43.3183,3.41,235,"r"], dPhe:["δ Phoenicis",1.5209,-49.073,3.93,140,"y"],
+  ePhe:["ε Phoenicis",0.1568,-45.7475,3.88,140,"r"], zPhe:["Wurren",1.1394,-55.2458,3.9,300,"b"],
+  // Pavo
+  aPav:["Peacock",20.4275,-56.7351,1.94,180,"b"], bPav:["β Pavonis",20.749,-66.2032,3.42,135,"w"],
+  dPav:["δ Pavonis",20.1451,-66.1821,3.56,20,"y"], hPav:["η Pavonis",17.7622,-64.7238,3.62,350,"r"],
+  zPav:["ζ Pavonis",18.7173,-71.4281,4.01,210,"r"], ePav:["ε Pavonis",20.0096,-72.9105,3.96,105,"w"],
+  gPav:["γ Pavonis",21.4407,-65.366,4.22,30,"y"], lPav:["λ Pavonis",18.8705,-62.1876,4.22,1400,"b"],
+  kPav:["κ Pavonis",18.9471,-67.2336,4.4,540,"y"],
+};
+
+// Constellations: id, name, lines (pairs of star keys), myth title, blurb, and figure description.
+const CONSTELLATIONS = [
+  {id:"Ori",name:"Orion",title:"The Hunter",blurb:"Orion, the giant huntsman, boasted he could kill every beast on Earth; Gaia sent the Scorpion to sting him, and Zeus set both in the sky, forever on opposite sides of the year.",
+   lines:[["aOri","gOri"],["gOri","dOri"],["dOri","eOri"],["eOri","zOri"],["zOri","kOri"],["kOri","bOri"],["bOri","dOri"],["aOri","zOri"],["aOri","lOri"],["gOri","lOri"],["gOri","p3Ori"],["p3Ori","p4Ori"],["p4Ori","p5Ori"],["p3Ori","p2Ori"],["p2Ori","p1Ori"],["aOri","mOri"],["mOri","nOri"],["nOri","c1Ori"],["mOri","xOri"],["xOri","c2Ori"]]},
+  {id:"UMa",name:"Ursa Major",title:"The Great Bear",blurb:"Callisto, a nymph beloved of Zeus, was turned into a bear by jealous Hera. Her son Arcas nearly speared her while hunting, so Zeus hurled them both into the sky by their tails, which is why the bear's tail is so long.",
+   lines:[["aUMa","bUMa"],["bUMa","gUMa"],["gUMa","dUMa"],["dUMa","aUMa"],["dUMa","eUMa"],["eUMa","zUMa"],["zUMa","hUMa"],["gUMa","cUMa"],["cUMa","yUMa"],["yUMa","mUMa"],["mUMa","lUMa"],["cUMa","nUMa"],["nUMa","xUMa"],["aUMa","23UMa"],["23UMa","oUMa"],["oUMa","uUMa"],["uUMa","qUMa"],["qUMa","iUMa"],["qUMa","kUMa"]]},
+  {id:"UMi",name:"Ursa Minor",title:"The Little Bear",blurb:"Arcas, Callisto's son, was set beside his mother as the Little Bear. At the tip of his tail hangs Polaris, the still point around which the whole northern sky turns.",
+   lines:[["aUMi","dUMi"],["dUMi","eUMi"],["eUMi","zUMi"],["zUMi","bUMi"],["bUMi","gUMi"],["gUMi","hUMi"],["hUMi","zUMi"]]},
+  {id:"Cas",name:"Cassiopeia",title:"The Queen on her Throne",blurb:"Cassiopeia boasted that she and her daughter Andromeda outshone the sea nymphs. Poseidon sent a sea monster, and as punishment she circles the pole for eternity on her throne, hanging upside down half the night.",
+   lines:[["bCas","aCas"],["aCas","gCas"],["gCas","dCas"],["dCas","eCas"]]},
+  {id:"Cep",name:"Cepheus",title:"The King",blurb:"Cepheus, king of Aethiopia and husband of Cassiopeia, was told he must chain his daughter Andromeda to a rock to appease the sea monster. He sits crowned beside his queen near the pole.",
+   lines:[["aCep","bCep"],["bCep","gCep"],["gCep","iCep"],["iCep","zCep"],["zCep","dCep"],["dCep","aCep"],["aCep","hCep"]]},
+  {id:"Dra",name:"Draco",title:"The Dragon",blurb:"Ladon, the hundred-headed dragon, coiled around the tree of the golden apples in the garden of the Hesperides. Heracles slew him for his eleventh labour, and Hera set the dragon among the stars, winding between the Bears.",
+   lines:[["gDra","bDra"],["bDra","nDra"],["nDra","xDra"],["xDra","gDra"],["xDra","dDra"],["dDra","eDra"],["dDra","cDra"],["cDra","zDra"],["zDra","hDra"],["hDra","qDra"],["qDra","iDra"],["iDra","aDra"],["aDra","kDra"],["kDra","lDra"]]},
+  {id:"Cyg",name:"Cygnus",title:"The Swan",blurb:"Zeus took the form of a swan to seduce Leda, queen of Sparta; from their union came Helen of Troy and the twin Castor. The swan flies down the Milky Way with Deneb at its tail and Albireo at its beak.",
+   lines:[["bCyg","hCyg"],["hCyg","gCyg"],["gCyg","aCyg"],["gCyg","eCyg"],["eCyg","zCyg"],["gCyg","dCyg"],["dCyg","iCyg"],["iCyg","kCyg"]]},
+  {id:"Lyr",name:"Lyra",title:"The Lyre of Orpheus",blurb:"Hermes made the first lyre from a tortoise shell and gave it to Apollo, who passed it to Orpheus. His music charmed even Hades, and when he died the Muses placed his lyre among the stars beside brilliant Vega.",
+   lines:[["aLyr","eLyr"],["aLyr","zLyr"],["zLyr","bLyr"],["bLyr","gLyr"],["gLyr","dLyr"],["dLyr","zLyr"]]},
+  {id:"Aql",name:"Aquila",title:"The Eagle",blurb:"The eagle of Zeus carried his thunderbolts, and it was this bird that swept the Trojan prince Ganymede up to Olympus to serve as cup-bearer to the gods. Altair marks its bright eye.",
+   lines:[["bAql","aAql"],["aAql","gAql"],["aAql","dAql"],["dAql","zAql"],["zAql","eAql"],["dAql","lAql"],["dAql","hAql"],["hAql","qAql"],["qAql","bAql"]]},
+  {id:"Her",name:"Hercules",title:"The Kneeling Hero",blurb:"The strongest of mortals, Heracles completed twelve impossible labours. The ancients drew him kneeling with club raised, his foot pressed on the head of Draco, the dragon he slew.",
+   lines:[["pHer","hHer"],["hHer","zHer"],["zHer","eHer"],["eHer","pHer"],["zHer","bHer"],["bHer","gHer"],["eHer","dHer"],["dHer","lHer"],["lHer","mHer"],["mHer","xHer"],["xHer","oHer"],["pHer","qHer"],["qHer","iHer"],["hHer","sHer"],["sHer","tHer"],["dHer","aHer"]]},
+  {id:"Boo",name:"Boötes",title:"The Herdsman",blurb:"Boötes drives the Great Bear around the pole with his hunting dogs, the Canes Venatici. Some say he is Arcas, son of Callisto, or the ploughman who invented the ox-drawn plough. Arcturus, 'bear-guard', burns at his knee.",
+   lines:[["aBoo","hBoo"],["hBoo","tBoo"],["aBoo","zBoo"],["aBoo","eBoo"],["eBoo","dBoo"],["dBoo","bBoo"],["bBoo","gBoo"],["gBoo","rBoo"],["rBoo","aBoo"],["gBoo","lBoo"],["lBoo","qBoo"]]},
+  {id:"CrB",name:"Corona Borealis",title:"Ariadne's Crown",blurb:"Dionysus gave the jewelled crown to Ariadne on their wedding, after Theseus abandoned her on Naxos. When she died he flung it into the heavens, where its gems became stars.",
+   lines:[["qCrB","bCrB"],["bCrB","aCrB"],["aCrB","gCrB"],["gCrB","dCrB"],["dCrB","eCrB"],["eCrB","iCrB"]]},
+  {id:"Per",name:"Perseus",title:"The Hero with the Gorgon's Head",blurb:"Perseus beheaded Medusa, whose gaze turned men to stone, and used the head to slay the sea monster and rescue Andromeda. Algol, the 'Demon Star', winks as the Gorgon's eye in his hand.",
+   lines:[["hPer","gPer"],["gPer","aPer"],["aPer","iPer"],["iPer","qPer"],["aPer","kPer"],["kPer","bPer"],["bPer","rPer"],["aPer","dPer"],["dPer","ePer"],["ePer","xPer"],["xPer","zPer"],["zPer","oPer"]]},
+  {id:"And",name:"Andromeda",title:"The Chained Princess",blurb:"Chained to a rock as a sacrifice for her mother's vanity, Andromeda awaited the sea monster Cetus. Perseus, flying past, fell in love, slew the beast and married her. Her stars trail from the corner of Pegasus.",
+   lines:[["aAnd","dAnd"],["dAnd","bAnd"],["bAnd","gAnd"],["bAnd","mAnd"],["mAnd","nAnd"],["nAnd","51And"],["dAnd","eAnd"],["eAnd","zAnd"],["zAnd","hAnd"],["dAnd","pAnd"]]},
+  {id:"Peg",name:"Pegasus",title:"The Winged Horse",blurb:"Pegasus sprang from the blood of Medusa when Perseus struck off her head. Bellerophon rode him to slay the Chimaera, but was thrown when he tried to fly to Olympus. Only the horse's forequarters are drawn in the sky.",
+   lines:[["aPeg","bPeg"],["bPeg","aAnd"],["aAnd","gPeg"],["gPeg","aPeg"],["aPeg","zPeg"],["zPeg","qPeg"],["qPeg","ePeg"],["bPeg","hPeg"],["hPeg","pPeg"],["bPeg","mPeg"],["mPeg","lPeg"],["lPeg","iPeg"],["iPeg","kPeg"]]},
+  {id:"Aur",name:"Auriga",title:"The Charioteer",blurb:"Erichthonius, lame king of Athens, invented the four-horse chariot and was honoured in the sky for it. He holds a she-goat, Capella, and her two kids on his shoulder.",
+   lines:[["aAur","bAur"],["bAur","qAur"],["qAur","bTau"],["bTau","iAur"],["iAur","aAur"],["aAur","eAur"],["eAur","zAur"],["bAur","dAur"]]},
+  {id:"Tau",name:"Taurus",title:"The Bull",blurb:"Zeus became a snow-white bull to carry off Europa across the sea to Crete. Only the forequarters rise from the waves; Aldebaran is the bull's fiery eye and the Pleiades ride on its shoulder.",
+   lines:[["zTau","aTau"],["aTau","q2Tau"],["q2Tau","gTau"],["gTau","d1Tau"],["d1Tau","eTau"],["eTau","bTau"],["gTau","lTau"],["lTau","xTau"],["xTau","oTau"],["lTau","nTau"]]},
+  {id:"Gem",name:"Gemini",title:"The Twins",blurb:"Castor the horseman and Pollux the boxer were inseparable. When mortal Castor was killed, Pollux begged Zeus to share his immortality, and the twins were placed together in the sky.",
+   lines:[["aGem","tGem"],["tGem","iGem"],["iGem","uGem"],["uGem","bGem"],["uGem","kGem"],["tGem","eGem"],["eGem","mGem"],["mGem","hGem"],["eGem","nGem"],["tGem","qGem"],["uGem","dGem"],["dGem","zGem"],["zGem","gGem"],["dGem","lGem"],["lGem","xGem"]]},
+  {id:"CMa",name:"Canis Major",title:"The Great Dog",blurb:"Laelaps, the hound that never failed to catch its quarry, was set in the sky as Orion's larger hunting dog. Sirius, the Dog Star, is the brightest star in the night and heralded the Nile flood.",
+   lines:[["aCMa","bCMa"],["aCMa","iCMa"],["iCMa","qCMa"],["iCMa","gCMa"],["aCMa","o2CMa"],["o2CMa","dCMa"],["dCMa","eCMa"],["eCMa","zCMa"],["dCMa","hCMa"],["dCMa","sCMa"]]},
+  {id:"CMi",name:"Canis Minor",title:"The Lesser Dog",blurb:"The smaller of Orion's two hounds, or Maera, the faithful dog of Icarius, who led his daughter to her murdered father's grave. Procyon means 'before the dog', since it rises just ahead of Sirius.",
+   lines:[["aCMi","bCMi"]]},
+  {id:"Leo",name:"Leo",title:"The Nemean Lion",blurb:"The Nemean Lion's hide could not be pierced by any weapon, so Heracles strangled it with his bare hands for his first labour. Regulus, the 'little king', burns at its heart and the Sickle forms its mane.",
+   lines:[["aLeo","hLeo"],["hLeo","gLeo"],["gLeo","zLeo"],["zLeo","mLeo"],["mLeo","eLeo"],["mLeo","lLeo"],["gLeo","dLeo"],["dLeo","bLeo"],["bLeo","qLeo"],["qLeo","dLeo"],["qLeo","aLeo"],["qLeo","iLeo"],["iLeo","sLeo"],["aLeo","oLeo"]]},
+  {id:"Cnc",name:"Cancer",title:"The Crab",blurb:"While Heracles fought the Hydra, Hera sent a crab to nip at his heel. He crushed it underfoot, but Hera rewarded its loyalty with a place in the zodiac. The Beehive cluster glows between the two donkeys.",
+   lines:[["iCnc","gCnc"],["gCnc","dCnc"],["dCnc","aCnc"],["dCnc","bCnc"]]},
+  {id:"Vir",name:"Virgo",title:"The Maiden",blurb:"Virgo is Astraea, goddess of justice, the last immortal to leave Earth when the Golden Age ended, or Demeter, goddess of the harvest. Spica is the ear of wheat she holds in her hand.",
+   lines:[["nVir","bVir"],["bVir","hVir"],["hVir","gVir"],["gVir","dVir"],["dVir","eVir"],["gVir","qVir"],["qVir","aVir"],["aVir","zVir"],["dVir","zVir"],["zVir","tVir"],["tVir","109Vir"],["zVir","iVir"],["iVir","mVir"],["aVir","kVir"]]},
+  {id:"Lib",name:"Libra",title:"The Scales",blurb:"The scales of justice held by Astraea, or once the claws of the Scorpion, which the Romans cut away to make a new sign. The names of its stars still mean 'northern claw' and 'southern claw'.",
+   lines:[["aLib","bLib"],["bLib","gLib"],["gLib","aLib"],["aLib","sLib"],["sLib","uLib"],["uLib","tLib"]]},
+  {id:"Sco",name:"Scorpius",title:"The Scorpion",blurb:"The scorpion that Gaia sent to slay boastful Orion. The two enemies were set at opposite ends of the sky, so that Orion sets as the Scorpion rises. Red Antares, 'rival of Mars', is its heart.",
+   lines:[["nSco","bSco"],["bSco","dSco"],["dSco","pSco"],["pSco","rSco"],["dSco","sSco"],["sSco","aSco"],["aSco","tSco"],["tSco","eSco"],["eSco","m1Sco"],["m1Sco","z2Sco"],["z2Sco","hSco"],["hSco","qSco"],["qSco","i1Sco"],["i1Sco","kSco"],["kSco","lSco"],["lSco","uSco"]]},
+  {id:"Sgr",name:"Sagittarius",title:"The Archer",blurb:"A centaur, sometimes said to be Crotus, inventor of archery and companion of the Muses, draws his bow at the heart of the Scorpion. The teapot asterism marks his bow and body, and the Milky Way's core steams from its spout.",
+   lines:[["gSgr","dSgr"],["dSgr","lSgr"],["lSgr","fSgr"],["fSgr","dSgr"],["dSgr","eSgr"],["eSgr","zSgr"],["zSgr","fSgr"],["fSgr","sSgr"],["sSgr","tSgr"],["tSgr","zSgr"],["lSgr","mSgr"],["sSgr","pSgr"],["pSgr","oSgr"],["oSgr","x2Sgr"],["eSgr","hSgr"],["zSgr","aSgr"],["aSgr","b1Sgr"],["pSgr","r1Sgr"]]},
+  {id:"Cap",name:"Capricornus",title:"The Sea-Goat",blurb:"When the monster Typhon attacked, the god Pan leapt into the Nile, and the half of him below the water became a fish while the top remained a goat. Zeus honoured the strange shape among the stars.",
+   lines:[["aCap","bCap"],["bCap","yCap"],["yCap","wCap"],["wCap","zCap"],["zCap","eCap"],["eCap","dCap"],["dCap","gCap"],["gCap","iCap"],["iCap","qCap"],["qCap","aCap"]]},
+  {id:"Aqr",name:"Aquarius",title:"The Water-Bearer",blurb:"Ganymede, the beautiful Trojan prince carried to Olympus by the eagle, pours nectar from his jar for the gods. The stream of faint stars flows down to Fomalhaut, the mouth of the Southern Fish.",
+   lines:[["eAqr","bAqr"],["bAqr","aAqr"],["aAqr","gAqr"],["gAqr","zAqr"],["zAqr","hAqr"],["zAqr","pAqr"],["bAqr","iAqr"],["aAqr","qAqr"],["qAqr","lAqr"],["lAqr","fAqr"],["fAqr","y1Aqr"],["lAqr","tAqr"],["tAqr","dAqr"],["dAqr","88Aqr"]]},
+  {id:"Psc",name:"Pisces",title:"The Two Fishes",blurb:"Fleeing the monster Typhon, Aphrodite and her son Eros leapt into the Euphrates and became fishes, tying their tails together with a cord so they would not be parted. The knot is the star Alrescha.",
+   lines:[["bPsc","gPsc"],["gPsc","qPsc"],["qPsc","iPsc"],["iPsc","lPsc"],["lPsc","kPsc"],["kPsc","bPsc"],["iPsc","wPsc"],["wPsc","dPsc"],["dPsc","ePsc"],["ePsc","zPsc"],["zPsc","nPsc"],["nPsc","aPsc"],["aPsc","oPsc"],["oPsc","hPsc"],["hPsc","cPsc"],["cPsc","fPsc"],["fPsc","uPsc"],["uPsc","tPsc"]]},
+  {id:"Ari",name:"Aries",title:"The Ram of the Golden Fleece",blurb:"The winged ram with the golden fleece carried Phrixus and Helle across the sea; Helle fell and drowned in the Hellespont. The fleece, later sought by Jason, hung in a grove guarded by a dragon.",
+   lines:[["gAri","bAri"],["bAri","aAri"],["aAri","41Ari"]]},
+  {id:"Oph",name:"Ophiuchus",title:"The Serpent-Bearer",blurb:"Asclepius, the physician, learned from a serpent how to raise the dead. Hades complained that no one would die, so Zeus struck him down with a thunderbolt but honoured him in the sky, grasping the serpent of healing.",
+   lines:[["aOph","kOph"],["kOph","lOph"],["lOph","dOph"],["dOph","eOph"],["eOph","zOph"],["zOph","hOph"],["hOph","nOph"],["nOph","gOph"],["gOph","bOph"],["bOph","aOph"],["hOph","xOph"],["xOph","qOph"]]},
+  {id:"Ser",name:"Serpens",title:"The Serpent",blurb:"The serpent held by Asclepius, the only constellation in two halves: Serpens Caput, the head, rises to the west of the healer and Serpens Cauda, the tail, trails away to the east.",
+   lines:[["gSer","bSer"],["bSer","dSer"],["dSer","aSer"],["aSer","eSer"],["eSer","mSer"],["nSer","xSer"],["xSer","oSer"],["oSer","hSer"],["hSer","qSer"]]},
+  {id:"Del",name:"Delphinus",title:"The Dolphin",blurb:"When the poet Arion was thrown overboard by pirates, a dolphin charmed by his music carried him safely to shore. Poseidon set the dolphin in the sky in gratitude, a small diamond of stars leaping from the Milky Way.",
+   lines:[["aDel","bDel"],["bDel","dDel"],["dDel","gDel"],["gDel","aDel"],["bDel","eDel"]]},
+  {id:"Crv",name:"Corvus",title:"The Crow",blurb:"Apollo sent his crow to fetch water in a cup, but the bird dawdled waiting for figs to ripen and blamed a water-snake. Apollo set crow, cup and snake in the sky, the crow forever kept from drinking.",
+   lines:[["aCrv","eCrv"],["eCrv","gCrv"],["gCrv","dCrv"],["dCrv","bCrv"],["bCrv","eCrv"]]},
+  {id:"Cru",name:"Crux",title:"The Southern Cross",blurb:"Known to the Greeks as part of the Centaur's hind legs, the Cross was named by European navigators. To many southern peoples it is an emu's head, a stingray, or the anchor of the Sky Canoe.",
+   lines:[["aCru","gCru"],["bCru","dCru"]]},
+  {id:"Cen",name:"Centaurus",title:"The Centaur",blurb:"Chiron, wisest of the centaurs, tutored Achilles, Jason and Asclepius. Wounded by one of Heracles' poisoned arrows, he gave up his immortality to end the pain, and Zeus set him among the stars.",
+   lines:[["aCen","bCen"],["bCen","eCen"],["eCen","zCen"],["zCen","gCen"],["gCen","sCen"],["sCen","dCen"],["dCen","pCen"],["zCen","nCen"],["nCen","qCen"],["qCen","iCen"],["nCen","hCen"],["hCen","kCen"],["zCen","mCen"]]},
+  {id:"Car",name:"Carina",title:"The Keel of the Argo",blurb:"Carina is the keel of the Argo, the ship in which Jason and the Argonauts sailed for the Golden Fleece. Athena built it with a speaking beam of oak from Dodona. Canopus, its pilot star, is second brightest in the sky.",
+   lines:[["aCar","cCar"],["cCar","eCar"],["eCar","iCar"],["iCar","qqCar"],["qqCar","pCar"],["pCar","qCar"],["qCar","wCar"],["wCar","bCar"],["bCar","uCar"],["uCar","iCar"]]},
+  {id:"Eri",name:"Eridanus",title:"The River",blurb:"Phaethon lost control of his father Helios's sun chariot and scorched the Earth; Zeus struck him down and he fell into the river Eridanus. The river winds from Orion's foot to Achernar, 'the river's end', far in the south.",
+   lines:[["bEri","mEri"],["mEri","nEri"],["nEri","o1Eri"],["o1Eri","gEri"],["gEri","pEri"],["pEri","dEri"],["dEri","eEri"],["eEri","zEri"],["zEri","hEri"],["hEri","t1Eri"],["t1Eri","t4Eri"],["t4Eri","t6Eri"],["t6Eri","u2Eri"],["u2Eri","qEri"],["qEri","iEri"],["iEri","kEri"],["kEri","fEri"],["fEri","cEri"],["cEri","aEri"]]},
+  {id:"Cet",name:"Cetus",title:"The Sea Monster",blurb:"The sea monster sent by Poseidon to ravage the coast of Aethiopia until Andromeda was offered to it. Perseus turned it to stone with the Gorgon's head. Mira, 'the wonderful', pulses in its neck.",
+   lines:[["aCet","lCet"],["lCet","mCet"],["mCet","x2Cet"],["x2Cet","gCet"],["gCet","aCet"],["gCet","dCet"],["dCet","oCet"],["oCet","zCet"],["zCet","tCet"],["tCet","bCet"],["bCet","iCet"],["iCet","hCet"],["hCet","qCet"],["qCet","zCet"]]},
+  {id:"Lep",name:"Lepus",title:"The Hare",blurb:"The hare crouches at Orion's feet, forever pursued by his great dog Sirius. It was placed in the sky by Hermes for its swiftness, though some say to give the hunter something to chase.",
+   lines:[["mLep","aLep"],["aLep","bLep"],["bLep","eLep"],["eLep","mLep"],["aLep","zLep"],["zLep","hLep"],["bLep","gLep"],["gLep","dLep"],["dLep","hLep"],["mLep","lLep"],["mLep","kLep"]]},
+  {id:"PsA",name:"Piscis Austrinus",title:"The Southern Fish",blurb:"The great fish drinks the water poured out by Aquarius. In Syrian myth it saved the goddess Derceto from drowning, and in gratitude fish were held sacred. Fomalhaut, 'the fish's mouth', is its lonely bright star.",
+   lines:[["aPsA","ePsA"],["ePsA","mPsA"],["mPsA","iPsA"],["iPsA","bPsA"],["bPsA","gPsA"],["gPsA","dPsA"],["dPsA","aPsA"]]},
+  {id:"Hya",name:"Hydra",title:"The Water-Snake",blurb:"The Lernaean Hydra grew two heads for every one cut off, until Heracles' nephew Iolaus seared each stump with fire. The longest constellation of all, it slithers a quarter of the way around the sky.",
+   lines:[["dHya","eHya"],["eHya","zHya"],["zHya","hHya"],["hHya","sHya"],["sHya","dHya"],["zHya","qHya"],["qHya","iHya"],["iHya","aHya"],["aHya","u1Hya"],["u1Hya","lHya"],["lHya","mHya"],["mHya","nHya"],["nHya","xHya"],["xHya","bHya"],["bHya","gHya"],["gHya","pHya"]]},
+  {id:"Com",name:"Coma Berenices",title:"Berenice's Hair",blurb:"Queen Berenice of Egypt vowed to cut off her hair if her husband returned safely from war. When the offering vanished from the temple, the court astronomer declared that the gods had placed it in the sky.",
+   lines:[["gCom","bCom"],["bCom","aCom"]]},
+  {id:"CVn",name:"Canes Venatici",title:"The Hunting Dogs",blurb:"Asterion and Chara, the two hounds of Boötes the herdsman, strain at their leash as they chase the Great Bear around the pole. Cor Caroli, 'Charles's heart', was named for the executed English king.",
+   lines:[["aCVn","bCVn"]]},
+  {id:"Gru",name:"Grus",title:"The Crane",blurb:"A modern constellation, cut from the stars of the Southern Fish by Dutch navigators in the 1590s. The crane was sacred to Hermes and, in Egypt, a symbol of the star-watcher.",
+   lines:[["gGru","d1Gru"],["d1Gru","bGru"],["bGru","eGru"],["aGru","d1Gru"],["bGru","iGru"]]},
+  {id:"Phe",name:"Phoenix",title:"The Phoenix",blurb:"The fabulous bird that lives five hundred years, builds its own pyre of spices and rises renewed from the ashes. Its stars were charted by Dutch navigators near Achernar, the end of the river.",
+   lines:[["aPhe","bPhe"],["bPhe","gPhe"],["gPhe","dPhe"],["dPhe","bPhe"],["bPhe","zPhe"],["aPhe","ePhe"],["ePhe","bPhe"]]},
+  {id:"Pav",name:"Pavo",title:"The Peacock",blurb:"Hera set the hundred eyes of her slain watchman Argus into the tail of her sacred peacock. Named in the 1590s, the bird spreads its tail around the south celestial pole.",
+   lines:[["aPav","bPav"],["bPav","gPav"],["bPav","dPav"],["dPav","ePav"],["ePav","zPav"],["dPav","kPav"],["kPav","lPav"],["lPav","hPav"]]},
+];
+
+const ART = {};
+// ORION — hunter, head at Meissa, shoulders Betelgeuse/Bellatrix, belt, knees Saiph/Rigel, club up-left, pelt shield right.
+ART.Ori = `
+<path class="w" d="M-12,-62 C0,-62 4,-52 2,-42 L10,-12 L14,-4 C0,25 -6,45 -3,63 L-30,66 C-42,45 -55,20 -60,-15 L-28,-38 C-24,-56 -20,-62 -12,-62Z"/>
+<path class="w" d="M-30,66 L-3,63 C0,80 18,100 42,145 L30,150 C18,120 5,100 -10,90 C-20,105 -32,130 -43,161 L-52,155 C-45,120 -38,95 -30,66Z"/>
+<circle cx="-12" cy="-49" r="13"/>
+<path d="M-24,-53 C-22,-66 -2,-68 1,-55 C0,-60 -6,-63 -12,-62 C-18,-62 -22,-58 -24,-53Z" class="f" opacity=".35"/>
+<path d="M-20,-38 L-40,-22 C-52,-18 -58,-16 -60,-15"/>
+<path d="M-2,-38 L8,-14 L14,-4"/>
+<path d="M-60,-15 C-55,12 -46,42 -30,66"/>
+<path d="M14,-4 C12,24 6,46 -3,63"/>
+<path d="M-32,70 L-1,64" class="k2"/>
+<path d="M-30,60 C-16,50 -6,52 0,58" class="h"/>
+<path d="M-48,-2 C-38,14 -22,20 -8,14" class="h"/>
+<path d="M-40,22 C-30,36 -18,38 -6,32" class="h"/>
+<path d="M-3,63 C2,84 18,104 30,122 L42,145"/>
+<path d="M-32,70 C-38,96 -42,130 -43,161"/>
+<path d="M-12,88 C-22,112 -30,135 -32,158" class="h"/>
+<path d="M-8,85 C6,100 20,120 30,150" class="h"/>
+<path d="M42,145 L52,150 L46,158 L36,152"/>
+<path d="M-43,161 L-54,158 L-52,170 L-40,170"/>
+<path d="M-60,-15 C-72,-20 -78,-30 -78,-37 C-84,-52 -90,-70 -92,-86"/>
+<path d="M-56,-4 C-66,-14 -70,-24 -70,-34 C-76,-50 -82,-66 -84,-84" class="h"/>
+<path d="M-92,-86 C-100,-92 -98,-100 -90,-96 C-86,-92 -88,-88 -92,-86Z"/>
+<path d="M-90,-96 C-80,-116 -70,-134 -62,-150 C-60,-158 -72,-160 -76,-152 L-94,-100" class="k2"/>
+<path d="M-66,-142 L-56,-146 M-70,-134 L-60,-140" class="h"/>
+<path d="M14,-4 C36,-6 60,-8 84,-6 C90,-4 90,2 84,4 C64,4 44,2 20,4" />
+<path d="M84,-6 C92,-16 98,-30 88,-46 C100,-40 110,-20 108,0 C106,20 100,34 90,42 C86,30 84,16 84,4" class="k2"/>
+<path class="w" d="M88,-46 C100,-40 110,-20 108,0 C106,20 100,34 90,42 L84,-6Z"/>
+<path d="M92,-36 C100,-24 102,-8 100,6 C98,20 94,30 90,38" class="h"/>
+<path d="M96,-30 C104,-14 104,6 98,24" class="h"/>
+<path d="M90,42 C92,52 86,56 82,48 C78,54 74,52 76,44" />
+`;
+// URSA MAJOR — bear facing west (right), dipper on the back, tail = handle.
+ART.UMa = `
+<path class="w" d="M212,-140 C180,-150 140,-140 110,-120 C60,-105 10,-110 -30,-100 C-80,-90 -120,-70 -128,-40 C-120,0 -80,40 -40,60 L-35,220 L-15,220 L-10,90 C30,80 70,70 100,60 L86,112 L104,112 L118,50 C150,30 180,0 200,-20 L214,18 L226,10 L214,-60 C226,-90 230,-120 212,-140Z"/>
+<path d="M212,-140 C180,-152 138,-142 108,-122 C70,-108 20,-112 -30,-102 C-80,-92 -122,-72 -130,-40" class="k2"/>
+<path d="M-130,-40 C-160,-60 -200,-84 -240,-72 C-260,-64 -270,-50 -274,-38"/>
+<path d="M-118,-30 C-150,-46 -196,-64 -232,-58 C-252,-52 -262,-44 -266,-36" class="h"/>
+<path d="M-130,-40 C-120,-5 -90,32 -50,55"/>
+<path d="M-50,55 C-62,110 -55,170 -36,226 L-14,222 C-10,170 -14,110 -10,86"/>
+<path d="M-40,80 C-45,130 -42,180 -30,218" class="h"/>
+<path d="M-36,226 C-42,236 -30,238 -20,234 L-14,222"/>
+<path d="M-10,86 C30,78 70,66 102,58"/>
+<path d="M102,58 C96,80 88,98 84,114 L106,114 C112,92 116,68 120,50"/>
+<path d="M84,114 C80,124 94,126 106,120"/>
+<path d="M120,50 C150,28 180,0 198,-24"/>
+<path d="M198,-24 C204,-10 210,6 212,20 L228,12 C224,-10 218,-40 214,-62"/>
+<path d="M212,20 C214,30 226,28 230,16"/>
+<path d="M214,-62 C224,-90 230,-122 212,-140"/>
+<path d="M212,-140 C226,-134 232,-124 234,-116 C230,-114 224,-112 218,-114"/>
+<path d="M226,-124 C232,-134 236,-146 232,-152 C224,-150 216,-146 212,-140" class="h"/>
+<path d="M200,-130 C196,-132 194,-136 196,-140" class="k2"/>
+<path d="M186,-146 C176,-156 166,-158 158,-150 C166,-146 176,-144 186,-146Z"/>
+<circle cx="203" cy="-131" r="2.5" class="f"/>
+<path d="M170,-110 C160,-90 150,-70 148,-50" class="h"/>
+<path d="M120,-100 C100,-80 90,-40 100,0" class="h"/>
+<path d="M40,-90 C10,-60 -10,-20 -20,20" class="h"/>
+<path d="M-60,-80 C-80,-50 -90,-20 -85,10" class="h"/>
+<path d="M-100,-70 C-95,-40 -90,-10 -80,15 M-30,-95 C-28,-60 -40,-20 -60,5 M60,-100 C50,-70 40,-30 35,10 M140,-125 C135,-100 130,-70 132,-40" class="h"/>
+`;
+// CASSIOPEIA — queen on a throne; throne back at Caph, body along Schedar–γ, knees at δ, feet at ε.
+ART.Cas = `
+<path class="w" d="M78,-52 L64,6 L70,30 L-40,26 L-58,-30 L-70,-42 L-62,-52 L-40,-6 L0,-10 L28,-20 L44,-40 Z"/>
+<path d="M64,6 C70,-14 76,-34 78,-52 C84,-56 90,-52 88,-44 L80,-8" class="k2"/>
+<path d="M78,-52 C74,-62 84,-70 90,-62 C94,-56 88,-50 84,-52"/>
+<path d="M64,6 L72,30 L-38,26 L-44,10"/>
+<path d="M72,30 L74,48 M-38,26 L-40,44 M-12,28 L-14,44" class="h"/>
+<path d="M60,12 L-30,10" class="h"/>
+<circle cx="54" cy="-30" r="11"/>
+<path d="M44,-38 C46,-50 66,-50 64,-38 C62,-44 50,-44 44,-38Z" class="f" opacity=".4"/>
+<path d="M46,-42 L44,-52 L50,-48 L54,-56 L58,-48 L64,-52 L62,-42"/>
+<path d="M48,-20 C42,-10 34,-2 26,6 C20,12 12,14 3,-4 C-4,-2 -14,-2 -22,-2 C-30,0 -36,-10 -38,-6"/>
+<path d="M58,-20 C58,-6 52,8 44,16 C32,24 18,26 6,22 C-6,20 -18,20 -30,22 C-38,24 -42,10 -40,4"/>
+<path d="M24,-4 C22,4 20,12 18,18" class="h"/>
+<path d="M-2,4 C-2,10 -4,16 -6,20" class="h"/>
+<path d="M0,-6 C-12,-16 -26,-14 -33,0 C-44,-14 -54,-26 -61,-40"/>
+<path d="M6,14 C-8,6 -20,6 -30,12 C-40,-2 -50,-16 -56,-30" class="h"/>
+<path d="M-61,-40 L-70,-48 L-64,-56 L-54,-46"/>
+<path d="M-70,-42 L-80,-38 L-76,-30 L-56,-30" class="h"/>
+<path d="M30,-22 C36,-14 34,-4 30,4" class="h"/>
+`;
+// CYGNUS — swan flying south-east; tail Deneb, breast Sadr, neck via η to beak at Albireo, wings to κ and ζ.
+ART.Cyg = `
+<path class="w" d="M-62,-56 C-50,-40 -40,-20 -30,-4 C-20,10 0,20 20,40 C40,60 60,90 84,124 L94,130 C80,100 60,60 40,34 C60,10 70,-60 82,-138 L74,-140 C60,-90 46,-50 28,-26 C0,-24 -30,-30 -50,-50 Z"/>
+<path class="w" d="M-30,-4 C-40,10 -60,30 -78,64 C-100,90 -130,100 -144,98 C-120,80 -100,50 -70,30 C-56,20 -44,6 -30,-4Z"/>
+<path d="M-62,-56 C-40,-24 -30,-8 -22,8 C-14,24 -6,30 10,36" />
+<path d="M-62,-56 C-50,-52 -44,-42 -40,-34 M-62,-56 C-56,-48 -52,-38 -50,-30 M-62,-56 C-70,-50 -66,-40 -60,-36" class="h"/>
+<path d="M-22,8 C-18,-6 -14,-16 -4,-22 C10,-28 24,-24 30,-10 C34,0 30,14 20,24" />
+<path d="M-4,-22 C0,-12 4,-2 8,6" class="h"/>
+<path d="M30,-10 C40,-40 52,-80 62,-118 C66,-130 74,-138 82,-140 C78,-124 70,-100 60,-80 C52,-60 44,-30 36,-6" />
+<path d="M40,-30 C46,-50 52,-70 58,-90 M46,-14 C54,-40 62,-70 70,-100 M34,4 C40,-10 44,-20 50,-30" class="h"/>
+<path d="M56,-120 L70,-124 M52,-108 L66,-112 M48,-94 L62,-98 M44,-78 L58,-84 M40,-60 L54,-66 M38,-44 L50,-50" class="h"/>
+<path d="M-22,8 C-40,20 -56,34 -76,62 C-96,86 -124,100 -146,100 C-136,90 -128,80 -120,70 C-100,54 -80,32 -60,14" />
+<path d="M-60,14 C-72,30 -84,46 -96,62 M-50,20 C-64,40 -78,58 -100,78 M-40,22 C-56,46 -70,64 -84,78" class="h"/>
+<path d="M-130,96 L-118,86 M-120,100 L-108,88 M-108,100 L-96,88 M-96,98 L-84,86" class="h"/>
+<path d="M20,24 C36,40 52,64 66,88 C74,100 80,116 88,128" />
+<path d="M10,36 C26,54 40,74 54,98 C62,110 70,118 80,132" />
+<path d="M88,128 C92,136 100,140 108,142 L94,146 C86,144 82,138 80,132" />
+<path d="M100,140 L112,146" class="k2"/>
+<circle cx="90" cy="130" r="1.8" class="f"/>
+<path d="M32,60 C40,68 48,80 56,96" class="h"/>
+`;
+// LEO — lion facing west (right): mane around the Sickle, heart at Regulus, rump at Zosma, tail to Denebola.
+ART.Leo = `
+<path class="w" d="M150,-96 C130,-120 96,-118 80,-100 C60,-80 40,-60 20,-40 C-20,-44 -70,-54 -104,-44 C-118,-30 -116,10 -104,20 L-130,60 L-126,110 L-112,108 L-108,66 L-70,40 L-20,50 L0,80 L14,76 L4,42 L50,44 L70,52 L124,72 L132,62 L84,30 L110,-10 L140,-50 C150,-60 156,-80 150,-96Z"/>
+<path d="M78,-100 C72,-120 84,-140 100,-134 C112,-146 132,-144 140,-128 C154,-124 162,-108 156,-92 C168,-84 166,-64 152,-58 C160,-44 148,-30 134,-34 C128,-18 108,-14 96,-24 C84,-16 70,-20 66,-34 C52,-30 40,-44 48,-58 C36,-66 40,-84 56,-86 C56,-100 68,-108 78,-100Z" class="k2"/>
+<path d="M90,-108 C104,-116 128,-112 138,-94 C146,-82 144,-66 132,-58 C122,-50 106,-52 98,-62"/>
+<path d="M138,-94 C150,-90 156,-80 154,-70 L146,-64" />
+<circle cx="126" cy="-84" r="2.4" class="f"/>
+<path d="M134,-70 C142,-72 148,-66 144,-60 C140,-58 136,-60 134,-64" />
+<path d="M104,-96 C100,-106 92,-104 90,-98" class="h"/>
+<path d="M60,-60 C70,-70 78,-80 84,-92 M74,-46 C82,-58 90,-70 94,-80 M112,-40 C118,-50 122,-54 126,-58 M58,-78 C66,-88 74,-92 80,-98 M116,-128 C120,-116 118,-104 112,-100 M136,-118 C136,-106 132,-98 128,-94" class="h"/>
+<path d="M60,-40 C30,-46 -10,-50 -50,-52 C-80,-54 -100,-50 -108,-40 C-118,-28 -116,0 -104,14"/>
+<path d="M-104,14 C-112,30 -124,44 -132,62 L-128,112 L-112,110 L-108,70 C-98,56 -84,46 -70,40"/>
+<path d="M-128,112 C-132,120 -120,124 -110,118 L-112,110" />
+<path d="M-70,40 C-40,46 -20,50 -6,52 L2,80 L16,76 L8,44 C30,46 50,46 70,50"/>
+<path d="M2,80 C0,90 12,90 18,84 L16,76" />
+<path d="M70,50 C88,58 106,66 124,74 L132,62 C118,50 100,38 84,28"/>
+<path d="M124,74 C130,80 140,74 136,66 L132,62" />
+<path d="M84,28 C96,10 104,-4 108,-16"/>
+<path d="M70,50 C68,30 66,10 62,-10" class="h"/>
+<path d="M-104,14 C-90,-10 -60,-30 -20,-36 M-60,-30 C-50,0 -40,24 -20,44" class="h"/>
+<path d="M-108,-24 C-130,-14 -160,0 -186,10 C-194,14 -198,20 -192,24 C-186,26 -182,18 -180,12" />
+<path d="M-186,10 C-200,6 -204,18 -196,26 C-186,32 -178,22 -180,12" class="k2"/>
+<path d="M-112,-16 C-134,-6 -160,6 -180,14" class="h"/>
+<path d="M-40,42 C-30,20 -20,0 -10,-20 M-10,48 C0,20 10,0 20,-16" class="h"/>
+<circle cx="58" cy="48" r="0" />
+`;
+// SCORPIUS — claws west (right, at β/δ/π/ρ), heart Antares, curving tail to the sting at λ/υ.
+ART.Sco = `
+<path class="w" d="M108,-140 C126,-130 128,-100 118,-84 C130,-70 128,-40 114,-26 L104,-40 C96,-56 90,-70 62,-80 C44,-84 30,-66 30,-50 C18,-30 6,-8 4,10 C-2,30 -4,50 -6,60 C-10,80 -20,96 -40,106 C-60,112 -84,112 -98,104 C-114,96 -118,78 -110,66 C-102,54 -92,48 -84,44 L-90,52 C-98,60 -100,72 -92,80 C-80,90 -56,90 -36,84 C-24,78 -18,60 -16,46 C-14,30 -12,14 -10,0 C-6,-20 10,-44 30,-66 C40,-90 60,-100 80,-96 C96,-94 110,-110 104,-128Z"/>
+<path d="M62,-80 C48,-86 32,-74 30,-58 C22,-42 10,-20 4,4 C0,26 -4,46 -6,60"/>
+<path d="M80,-96 C64,-104 48,-96 42,-84 M42,-40 C34,-20 20,0 16,20 M16,20 C12,36 8,50 4,62" class="h"/>
+<path d="M28,-58 C40,-52 52,-58 58,-70 M8,-8 C22,0 32,-12 34,-24 M-8,30 C6,38 18,30 20,14 M-12,52 C0,60 10,54 12,42" />
+<path d="M-6,60 C-10,82 -22,98 -44,106 C-64,112 -86,110 -100,100 C-116,90 -116,74 -106,64 C-100,58 -94,52 -86,46"/>
+<path d="M-16,46 C-18,66 -30,86 -50,92 C-70,98 -88,92 -96,80 C-100,70 -96,60 -90,54"/>
+<path d="M-24,78 C-32,88 -46,96 -62,96 M-70,96 C-84,94 -94,86 -98,76" class="h"/>
+<path d="M-40,106 L-36,84 M-60,110 L-56,94 M-78,108 L-72,94 M-96,100 L-92,86" class="h"/>
+<path d="M-86,46 C-80,40 -74,36 -70,30 C-66,26 -62,26 -60,30 C-62,36 -68,42 -74,46" class="k2"/>
+<path d="M-90,54 C-86,50 -82,46 -78,44" class="h"/>
+<path d="M62,-80 C78,-94 96,-100 106,-114 C110,-124 108,-134 104,-140 C100,-130 96,-118 90,-108" />
+<path d="M58,-82 C74,-96 88,-110 96,-126 C100,-136 98,-144 92,-148" class="k2"/>
+<path d="M92,-148 C102,-146 110,-138 112,-128 C114,-120 110,-112 104,-110 C106,-118 104,-126 100,-132 L110,-124" class="k2"/>
+<path d="M66,-86 C78,-98 88,-110 94,-122" class="h"/>
+<path d="M60,-74 C80,-72 100,-64 112,-50 C120,-40 122,-30 118,-22" class="k2"/>
+<path d="M118,-22 C126,-26 132,-36 130,-48 C128,-58 122,-66 114,-68 C118,-60 120,-50 118,-42 L110,-36" class="k2"/>
+<path d="M66,-70 C84,-66 100,-58 110,-46" class="h"/>
+<path d="M34,-70 L52,-90 L60,-100 M34,-70 L44,-96 M22,-38 L4,-56 L-6,-72 M22,-38 L0,-42 M12,-2 L-10,-6 L-24,-20 M12,-2 L-14,10 M0,32 L-22,40 L-36,32 M0,32 L-20,54 M4,-30 L20,-44 M16,8 L36,2 M6,40 L26,46" />
+<path d="M46,-60 L66,-58 L76,-62 M40,-46 L60,-40 L70,-46" />
+`;
+// TAURUS — bull charging east (left): Hyades V is the face, Aldebaran the eye, horns to Elnath and ζ, Pleiades on the shoulder.
+ART.Tau = `
+<path class="w" d="M-88,-18 C-70,-30 -40,-30 -10,-24 C20,-56 60,-78 110,-70 C140,-64 160,-56 172,-48 L168,62 C140,66 100,68 60,72 C40,74 20,80 8,84 C0,68 -10,50 -22,40 C-40,44 -58,40 -76,34 C-86,22 -92,4 -88,-18Z"/>
+<path d="M-10,-24 C-40,-30 -70,-28 -88,-18 C-94,0 -88,20 -76,34 C-60,40 -40,44 -22,40 C-14,38 -12,32 -18,26 C-30,10 -44,-4 -60,-10" class="k2"/>
+<path d="M-22,40 C-18,44 -14,40 -14,34 M-24,30 C-22,34 -18,34 -16,30" />
+<path d="M-60,-10 C-50,0 -44,10 -40,22 M-48,4 C-56,10 -66,14 -74,14" class="h"/>
+<path d="M-62,22 C-58,16 -52,16 -50,22 C-52,28 -58,28 -62,22Z" class="k2"/>
+<circle cx="-57" cy="22" r="2.2" class="f"/>
+<path d="M-82,-16 C-100,-40 -130,-80 -172,-110 C-176,-116 -170,-118 -164,-114 C-130,-88 -100,-52 -74,-28" class="k2"/>
+<path d="M-84,10 C-120,-6 -160,-22 -210,-36 C-216,-40 -212,-46 -206,-44 C-160,-34 -120,-20 -86,-4" class="k2"/>
+<path d="M-96,-24 C-110,-42 -126,-60 -146,-78 M-100,4 C-130,-6 -160,-18 -190,-30" class="h"/>
+<path d="M-10,-24 C20,-56 60,-80 110,-72 C140,-66 160,-58 174,-48"/>
+<path d="M-10,-24 C10,-40 34,-50 60,-52 C46,-36 36,-16 30,4" class="h"/>
+<path d="M60,-60 C48,-66 40,-70 30,-66 M70,-40 C60,-46 50,-46 44,-42" class="h"/>
+<path d="M-18,26 C-4,44 4,62 8,84 C14,100 18,118 18,134 L28,132 C28,116 28,96 34,80 C50,74 100,68 168,62"/>
+<path d="M18,134 C12,142 24,146 30,140 L28,132"/>
+<path d="M100,66 C104,80 108,88 110,100 L120,98 C118,88 116,76 116,66" />
+<path d="M110,100 C106,108 118,110 122,104 L120,98"/>
+<path d="M56,-10 C60,20 60,50 62,72 M100,-30 C110,10 112,40 114,64 M140,-46 C146,-10 146,30 148,60" class="h"/>
+<path d="M164,-52 C178,-30 176,10 172,40 C180,50 172,62 166,66" class="h"/>
+`;
+// GEMINI — the twins side by side, heads at Castor and Pollux, feet toward the west.
+ART.Gem = `
+<path class="w" d="M-60,-92 C-40,-100 -20,-80 -16,-62 C10,-50 40,-30 60,-16 C80,-10 100,4 110,10 L100,22 C80,16 60,10 40,4 C20,0 0,4 -20,-4 C-40,-14 -60,-30 -70,-50 Z"/>
+<path class="w" d="M-104,-52 C-100,-70 -80,-64 -84,-42 C-70,-28 -50,-10 -38,20 C-20,26 0,30 20,50 C40,66 56,74 62,80 L50,90 C36,82 20,74 4,66 C-8,74 -20,84 -32,80 L48,112 L40,124 L-44,92 L-46,60 C-60,44 -90,10 -100,-6 Z"/>
+<circle cx="-70" cy="-84" r="11"/>
+<path d="M-80,-92 C-76,-102 -60,-102 -58,-90 C-62,-96 -74,-96 -80,-92Z" class="f" opacity=".35"/>
+<path d="M-62,-74 C-40,-70 -24,-66 -16,-62 C-10,-52 0,-40 12,-30" />
+<path d="M-74,-73 C-70,-60 -64,-48 -56,-40 C-40,-24 -10,-10 20,0" />
+<path d="M-16,-62 C-4,-70 14,-80 24,-98 C28,-104 20,-108 16,-102 C10,-90 0,-76 -10,-70" />
+<path d="M12,-30 C30,-24 50,-18 64,-14 C80,-8 96,0 112,8 C118,10 118,16 112,18 C96,12 80,6 64,2 C50,0 30,-2 20,0" />
+<path d="M20,0 C40,6 62,8 80,12 C92,14 100,18 104,24 C100,28 92,26 84,22 C66,18 50,14 34,10" class="h"/>
+<path d="M-40,-46 C-30,-34 -14,-26 0,-24 M-30,-56 C-16,-50 -4,-46 8,-44" class="h"/>
+<path d="M112,8 C118,4 124,8 122,14 L112,18" />
+<circle cx="-95" cy="-46" r="11"/>
+<path d="M-105,-54 C-101,-64 -85,-64 -83,-52 C-87,-58 -99,-58 -105,-54Z" class="f" opacity=".35"/>
+<path d="M-88,-36 C-80,-30 -72,-28 -66,-22 C-52,-6 -44,6 -38,20" />
+<path d="M-100,-34 C-100,-24 -100,-16 -96,-8 C-92,0 -86,4 -80,6 C-70,10 -60,20 -50,32" />
+<path d="M-86,-30 C-90,-20 -94,-12 -96,-4 C-96,2 -94,6 -92,8" class="h"/>
+<path d="M-94,-8 C-100,-4 -104,2 -100,8 C-96,10 -92,6 -92,2" class="k2"/>
+<path d="M-38,20 C-24,26 -10,30 0,34 C20,46 42,62 62,78 C68,82 66,90 58,88 C40,76 24,66 4,58 C-10,64 -22,74 -34,80 C-8,92 20,106 46,114 C54,118 50,126 42,124 C14,112 -16,100 -44,90 C-48,80 -48,68 -46,58 C-56,42 -70,24 -80,6" />
+<path d="M-46,58 C-30,58 -14,54 -2,50 M-30,40 C-20,44 -10,46 0,44" class="h"/>
+<path d="M-64,-4 C-56,10 -50,26 -46,40" class="h"/>
+<path d="M62,78 C70,80 72,88 66,92 L58,88 M46,114 C56,116 58,124 50,128 L42,124" />
+<path d="M-38,20 C-30,12 -20,6 -10,4 C0,2 8,-2 12,-8" class="h"/>
+`;
+// PERSEUS — hero with sword raised, Medusa's head (Algol) in the other hand, winged sandals.
+ART.Per = `
+<path class="w" d="M20,-84 C10,-80 0,-70 -6,-56 C-14,-40 -20,-24 -26,-10 C-40,10 -56,28 -66,46 C-72,66 -74,90 -70,112 L-58,132 L-40,124 L-54,100 C-56,80 -52,60 -40,44 C-30,30 -14,14 -4,0 C4,-10 10,-20 14,-30 L26,-4 L36,-6 L26,-40 C34,-52 40,-64 62,-74 L60,-86 C46,-84 32,-86 20,-84Z"/>
+<circle cx="38" cy="-100" r="12"/>
+<path d="M28,-110 C34,-122 52,-120 50,-106 C46,-116 34,-116 28,-110Z" class="f" opacity=".4"/>
+<path d="M28,-112 C20,-124 10,-128 4,-124 C12,-122 20,-116 26,-108 M50,-110 C56,-124 66,-128 72,-122 C64,-120 56,-114 52,-106" />
+<path d="M30,-88 C22,-86 12,-82 6,-72 C-2,-58 -6,-44 -10,-30" />
+<path d="M46,-90 C56,-86 62,-80 64,-72 C58,-64 52,-56 44,-50" />
+<path d="M-10,-30 C-20,-16 -34,0 -48,20 C-62,40 -70,64 -68,90 C-68,104 -62,118 -56,132 L-40,124 C-46,110 -52,98 -54,84 C-52,64 -46,50 -34,36 C-20,20 -6,6 4,-8" />
+<path d="M-56,132 C-64,140 -52,146 -44,140 M-40,124 C-32,120 -26,128 -34,136 C-40,140 -46,142 -50,138" />
+<path d="M-68,126 C-78,124 -84,118 -80,110 C-72,116 -70,120 -68,126 M-46,140 C-36,148 -22,146 -18,138 C-28,138 -38,140 -46,140" class="h"/>
+<path d="M4,-8 C10,0 12,10 10,20 C8,36 4,52 2,70 L14,70 C16,52 20,36 22,20 C22,8 18,-6 14,-20" />
+<path d="M2,70 C-2,78 10,82 16,76 L14,70" />
+<path d="M-4,-40 C-14,-30 -22,-20 -26,-10 M-14,-14 C-6,-12 2,-14 6,-20" class="h"/>
+<path d="M44,-50 C44,-40 42,-30 38,-22 C34,-14 30,-6 26,0 C22,4 24,8 28,6 C32,0 34,-6 36,-12" />
+<path d="M26,0 C22,8 20,14 24,16 C30,14 32,8 32,2" class="k2"/>
+<path d="M28,10 C30,20 30,26 28,32" />
+<circle cx="28" cy="44" r="14"/>
+<path d="M18,34 C12,26 6,24 2,28 M22,30 C20,22 22,16 26,14 M34,30 C38,22 44,20 48,24 M40,34 C48,30 54,32 56,38 M40,52 C48,56 52,62 50,68 M34,56 C36,64 34,70 30,74 M18,54 C12,60 8,66 10,72 M14,46 C6,44 0,46 -2,52" />
+<path d="M22,42 C24,40 28,40 30,42 M30,50 C28,54 22,54 20,50" class="h"/>
+<path d="M64,-72 C72,-82 80,-96 84,-110 C86,-116 92,-116 92,-110 C88,-96 82,-82 74,-70" />
+<path d="M88,-112 L104,-160 C106,-166 112,-166 112,-160 L100,-108 Z" class="k2"/>
+<path d="M82,-112 L98,-108 M104,-160 L96,-160" />
+<path d="M12,-60 C22,-56 32,-58 40,-64 M10,-50 C20,-44 30,-46 36,-52" class="h"/>
+`;
+// ANDROMEDA — princess chained to the rock; head at Alpheratz, hips at Mirach, feet at Almach and 51 And.
+ART.And = `
+<path class="w" d="M96,34 C110,26 122,40 116,56 L100,60 C90,58 70,50 40,40 C10,30 -10,12 -30,-4 C-40,-20 -60,-50 -74,-60 C-90,-70 -110,-80 -126,-90 L-134,-84 C-116,-70 -96,-56 -80,-44 L-50,-6 L-60,-30 C-58,-60 -62,-100 -70,-140 L-78,-140 C-72,-100 -66,-64 -54,-30 C-44,-10 -34,10 -24,20 C-6,36 18,46 44,52 Z"/>
+<circle cx="112" cy="50" r="12"/>
+<path d="M104,40 C112,30 126,34 124,48 C122,40 110,36 104,40Z" class="f" opacity=".4"/>
+<path d="M124,48 C130,54 130,62 124,66 C120,60 118,54 118,50" class="h"/>
+<path d="M100,42 C90,40 76,40 60,38 C40,34 20,26 0,14 C-10,8 -20,0 -30,-6" />
+<path d="M102,58 C86,58 66,54 46,50 C24,44 6,34 -8,22 C-14,16 -20,10 -26,6" />
+<path d="M60,38 C58,30 56,22 52,16 M40,34 C40,26 36,18 32,12 M14,26 C12,20 8,14 4,10" class="h"/>
+<path d="M-30,-6 C-40,-12 -54,-28 -70,-48 C-86,-62 -106,-76 -128,-90 C-134,-92 -136,-86 -132,-82 C-108,-68 -88,-54 -74,-42 C-58,-24 -44,-8 -30,2" />
+<path d="M-128,-90 C-134,-98 -142,-96 -142,-88 C-140,-84 -136,-84 -132,-82" />
+<path d="M-26,6 C-38,-8 -50,-20 -60,-34 C-62,-66 -66,-104 -72,-146 C-72,-152 -80,-152 -80,-146 C-76,-104 -70,-64 -58,-26 C-50,-14 -42,-2 -34,10" />
+<path d="M-72,-146 C-72,-156 -82,-158 -84,-150 L-80,-146" />
+<path d="M-70,-40 C-64,-50 -62,-64 -60,-80 M-66,-90 C-66,-104 -68,-118 -70,-130" class="h"/>
+<path d="M-94,-66 C-102,-64 -110,-70 -112,-78" class="h"/>
+<path d="M60,38 C54,44 44,54 30,72 C24,86 18,98 12,110 L4,116 C0,112 4,104 6,98 C10,84 18,66 28,52" />
+<path d="M12,110 C4,106 0,110 2,116 C6,120 12,118 14,112" class="k2"/>
+<path d="M-6,116 L-2,122 M-10,122 L-4,130 M-16,126 L-12,134 M-20,134 L-14,140" />
+<path d="M-40,110 C-30,100 -10,104 -4,118 C0,130 -12,140 -26,138 C-38,136 -46,124 -40,110Z" class="h"/>
+<path d="M-4,118 C-12,116 -20,118 -26,126" class="h"/>
+<path d="M62,38 C56,28 50,18 42,8 C40,2 38,-2 36,-8 L30,-10 C28,-4 30,2 34,8 C40,18 46,28 54,40" />
+<path d="M36,-8 C32,-12 28,-14 24,-12 L30,-4" class="k2"/>
+<path d="M28,-16 L24,-22 M22,-14 L18,-22 M16,-20 L12,-28 M10,-26 L6,-34" />
+<path d="M0,-40 C10,-50 26,-46 30,-34 C34,-24 22,-14 10,-16 C0,-18 -6,-30 0,-40Z" class="h"/>
+`;
+// PEGASUS — winged horse, body is the Great Square, neck down to Enif, forelegs toward Lacerta.
+ART.Peg = `
+<path class="w" d="M-211,-103 L-61,-73 L-68,57 C-40,70 -20,90 -12,102 C20,126 50,150 68,151 C90,152 120,134 134,110 C142,100 138,88 128,90 C110,100 90,120 70,130 C40,120 10,100 -20,70 L-40,60 L-247,44 Z"/>
+<path d="M-211,-103 C-160,-92 -110,-82 -61,-73" class="k2"/>
+<path d="M-61,-73 C-64,-30 -66,14 -68,57"/>
+<path d="M-247,44 C-240,30 -232,10 -226,-4 C-220,-20 -216,-40 -216,-60 C-214,-78 -212,-92 -211,-103" class="h"/>
+<path d="M-247,44 C-230,46 -190,48 -150,50 C-120,52 -90,54 -68,57"/>
+<path d="M-180,40 C-186,20 -188,0 -184,-20 C-180,-40 -190,-60 -196,-80 M-140,44 C-132,20 -140,-10 -136,-40 C-130,-60 -140,-70 -142,-84 M-100,46 C-104,20 -98,-10 -102,-40 C-104,-60 -96,-70 -98,-80" class="h"/>
+<path d="M-68,57 C-46,66 -30,82 -12,100 C10,124 40,148 68,152 C92,150 116,136 132,116 C140,104 144,94 140,88"/>
+<path d="M-40,44 C-20,54 -4,70 8,84 C20,98 34,110 48,116 C60,120 74,120 90,112 C104,102 114,90 122,84"/>
+<path d="M-56,50 C-48,40 -40,34 -30,34 M-46,60 C-36,52 -26,50 -18,52 M-30,74 C-22,66 -12,66 -4,70 M-16,90 C-8,84 2,84 8,88 M0,108 C8,102 18,104 24,110 M18,122 C26,118 36,120 42,126" class="h"/>
+<path d="M122,84 C126,74 122,66 114,66 C110,74 112,80 116,86" />
+<path d="M140,88 C148,92 154,102 152,112 C148,120 140,122 134,118 C136,110 138,100 140,88Z" class="k2"/>
+<path d="M136,110 C144,112 150,110 152,112" class="h"/>
+<circle cx="120" cy="96" r="2.4" class="f"/>
+<path d="M132,116 C138,124 136,130 130,132 C126,128 126,122 128,118" />
+<path d="M-61,-73 C-50,-80 -36,-88 -20,-92 C0,-98 26,-108 52,-124 C58,-128 62,-126 60,-120 C40,-108 20,-100 0,-92 C-14,-86 -28,-82 -42,-72" />
+<path d="M52,-124 C58,-134 66,-136 68,-130 L60,-120" class="k2"/>
+<path d="M-24,-88 C-20,-96 -14,-100 -8,-98 M-2,-94 C2,-102 8,-104 14,-100" class="h"/>
+<path d="M-61,-73 C-50,-58 -40,-44 -30,-38 C-26,-34 -22,-30 -14,-30 C10,-36 40,-44 66,-46 C84,-48 102,-52 118,-56 C124,-58 126,-52 122,-48 C102,-44 82,-40 62,-40 C40,-38 14,-30 -12,-24 C-24,-24 -34,-30 -44,-40" />
+<path d="M118,-56 C124,-64 132,-62 132,-54 L122,-48" class="k2"/>
+<path d="M-30,-38 C-22,-42 -18,-40 -16,-34 M20,-38 C24,-46 30,-46 34,-40 M60,-42 C64,-50 72,-50 74,-44" class="h"/>
+<path d="M-140,-88 C-150,-120 -160,-160 -150,-200 C-140,-230 -120,-250 -100,-260 C-110,-236 -112,-210 -104,-186 C-96,-160 -90,-130 -90,-100 C-100,-96 -120,-92 -140,-88Z" />
+<path d="M-140,-88 C-130,-130 -122,-170 -104,-186 M-124,-92 C-118,-130 -110,-160 -100,-190 M-108,-96 C-104,-130 -98,-160 -96,-190" class="h"/>
+<path d="M-150,-200 L-130,-196 M-146,-220 L-124,-214 M-138,-240 L-118,-232 M-126,-254 L-108,-246" class="h"/>
+<path d="M-190,-100 C-200,-130 -210,-160 -200,-190 C-196,-200 -188,-206 -180,-208 C-186,-190 -186,-170 -180,-150 C-174,-130 -166,-110 -160,-96 Z" class="h"/>
+<path d="M-260,50 C-250,60 -256,70 -246,74 C-238,66 -242,56 -236,50 M-240,-20 C-232,-10 -234,4 -226,10" class="h"/>
+`;
+// BOÖTES — herdsman with staff raised, sickle in the other hand, knee at Arcturus.
+ART.Boo = `
+<path class="w" d="M-84,-100 C-60,-104 -40,-96 -18,-90 C-6,-70 -4,-40 -12,-10 C-20,20 -30,40 -22,56 C0,72 14,92 22,104 C46,100 70,104 92,120 L82,134 C60,124 40,124 26,124 L-6,100 L-30,80 C-34,110 -36,140 -38,160 L-56,158 C-52,120 -50,90 -48,60 C-60,40 -76,20 -84,-4 C-96,-30 -104,-60 -94,-86 Z"/>
+<circle cx="-72" cy="-120" r="12"/>
+<path d="M-82,-128 C-78,-140 -62,-138 -62,-126 C-66,-134 -78,-134 -82,-128Z" class="f" opacity=".4"/>
+<path d="M-84,-108 C-96,-120 -100,-132 -96,-140 C-90,-134 -86,-124 -84,-116 M-60,-108 C-52,-118 -48,-128 -52,-138 C-58,-132 -60,-122 -62,-114" class="h"/>
+<path d="M-60,-104 C-40,-100 -26,-96 -16,-90 C-10,-70 -6,-40 -12,-12 C-16,10 -24,30 -22,52" />
+<path d="M-84,-104 C-98,-96 -104,-78 -104,-60 C-102,-40 -94,-20 -84,-4 C-74,16 -60,36 -48,56" />
+<path d="M-72,-60 C-64,-50 -52,-46 -40,-50 M-70,-30 C-60,-20 -46,-18 -34,-24 M-64,0 C-56,10 -44,12 -34,8" class="h"/>
+<path d="M-48,56 C-46,90 -46,124 -50,158 C-50,166 -40,168 -38,160 C-34,130 -32,100 -30,74" />
+<path d="M-50,158 C-56,164 -48,172 -36,168" />
+<path d="M-30,74 C-24,84 -14,92 0,100 C8,104 20,108 30,110 C50,112 70,118 88,128 C96,132 94,140 84,136 C66,128 46,124 26,124 C10,120 -6,112 -18,102 C-26,94 -30,84 -32,76" />
+<path d="M0,100 C6,90 10,80 8,70 M20,106 C24,96 24,86 20,78" class="h"/>
+<path d="M88,128 C96,126 100,132 96,140 L84,136" />
+<path d="M-16,-90 C-2,-100 8,-120 14,-160 C16,-166 22,-166 22,-160 C18,-124 8,-100 -4,-84" />
+<path d="M14,-160 C10,-166 10,-172 16,-174 C20,-170 22,-166 22,-160" class="k2"/>
+<path d="M18,-174 C12,-196 6,-216 0,-238 M18,-174 L26,-130" class="k2"/>
+<path d="M0,-238 C-4,-244 4,-248 6,-242 C4,-238 2,-236 0,-238Z" class="f"/>
+<path d="M-104,-60 C-116,-50 -128,-30 -134,-10 C-136,-4 -130,-2 -128,-8 C-122,-26 -112,-40 -102,-48" />
+<path d="M-134,-10 C-140,-6 -142,2 -136,4 C-130,2 -128,-2 -128,-8" class="k2"/>
+<path d="M-136,4 C-150,10 -164,4 -172,-8 C-176,-18 -170,-28 -160,-30 C-166,-18 -160,-6 -148,-2 C-144,0 -140,2 -136,4Z" />
+<path d="M-160,-30 C-156,-40 -150,-48 -144,-52" class="h"/>
+<path d="M-40,-80 C-30,-70 -24,-50 -26,-30 M-60,-84 C-56,-70 -60,-56 -66,-44" class="h"/>
+<path d="M-20,-96 C-24,-104 -34,-108 -44,-104 C-52,-102 -60,-96 -66,-92" class="h"/>
+`;
+// AQUILA — eagle flying north, head above Altair, wings to ε/ζ and θ, tail to λ.
+ART.Aql = `
+<path class="w" d="M-46,-72 C-36,-76 -30,-64 -32,-54 C-22,-44 -10,-30 0,-16 C20,-30 50,-60 90,-98 L94,-90 C60,-56 30,-26 8,-4 C10,10 16,20 24,28 C40,50 58,80 76,108 L68,114 C50,90 34,68 24,52 C0,48 -30,56 -94,70 L-96,62 C-60,50 -30,38 -12,18 C-20,0 -36,-14 -44,-28 C-54,-36 -60,-50 -46,-72Z"/>
+<circle cx="-46" cy="-66" r="9"/>
+<path d="M-52,-72 C-60,-76 -66,-72 -68,-66 C-62,-68 -56,-66 -52,-64" class="k2"/>
+<circle cx="-42" cy="-68" r="1.8" class="f"/>
+<path d="M-40,-58 C-34,-52 -30,-44 -28,-36 C-22,-26 -14,-16 -4,-10 M-52,-58 C-52,-48 -48,-40 -42,-30 C-36,-22 -28,-14 -20,-6" />
+<path d="M-4,-10 C4,0 12,12 18,22 C30,44 46,72 66,104 C70,110 76,108 74,102 C56,74 40,48 28,30 C18,14 8,4 -2,-4" />
+<path d="M-20,-6 C-14,4 -8,14 -6,26 C-10,42 -20,50 -32,54 M-6,26 C0,44 6,64 10,84 C12,94 12,104 14,112" class="h"/>
+<path d="M14,112 C24,110 34,110 44,106 C56,104 66,106 74,102 M14,112 C10,120 18,124 24,118 M30,110 C28,118 34,122 40,114 M46,106 C46,114 52,116 56,108" />
+<path d="M-4,-10 C10,-24 30,-44 50,-62 C64,-76 78,-88 90,-98 C96,-102 98,-96 94,-90 C70,-70 50,-50 32,-30 C22,-20 14,-10 6,0" />
+<path d="M20,-30 C34,-44 48,-58 62,-70 M28,-20 C42,-36 56,-52 72,-66 M14,-12 C22,-24 34,-38 46,-50" class="h"/>
+<path d="M60,-70 L68,-80 M50,-58 L58,-68 M40,-46 L48,-56 M30,-34 L38,-44 M22,-24 L28,-32" class="h"/>
+<path d="M-20,-6 C-34,4 -50,22 -70,44 C-80,54 -90,60 -96,64 C-100,68 -96,74 -90,70 C-72,58 -54,44 -38,34 C-30,28 -24,20 -18,12" />
+<path d="M-40,20 C-52,30 -64,44 -78,56 M-34,10 C-48,22 -62,34 -76,44 M-46,28 C-58,40 -70,50 -84,60" class="h"/>
+<path d="M-80,52 L-90,58 M-70,44 L-80,52 M-60,34 L-70,42 M-50,28 L-60,34" class="h"/>
+<path d="M-26,40 C-30,46 -30,52 -28,56 M-20,44 C-22,50 -22,56 -20,60" />
+<path d="M-28,56 C-32,58 -30,64 -26,60 M-20,60 C-22,64 -18,68 -14,62" class="k2"/>
+`;
+// LYRA — the lyre of Orpheus, Vega at the tip of one arm.
+ART.Lyr = `
+<path class="w" d="M-34,26 C-36,36 -30,48 -12,50 C6,50 12,36 10,26 Z"/>
+<path d="M-34,26 C-38,36 -32,50 -12,52 C8,52 14,38 10,26" class="k2"/>
+<path d="M-34,26 L10,26" />
+<path d="M-28,32 C-26,42 -20,46 -12,46 C-4,46 2,42 4,32 M-22,34 C-20,40 -16,42 -12,42 C-8,42 -4,40 -2,34" class="h"/>
+<path d="M-30,26 C-36,10 -36,-6 -30,-14 C-28,-22 -22,-24 -22,-18 C-26,-6 -26,8 -22,24" />
+<path d="M6,26 C12,10 12,-6 8,-14 C10,-22 16,-28 22,-24 C24,-20 20,-18 16,-18 C12,-8 12,8 10,24" />
+<path d="M22,-24 C26,-28 26,-32 22,-32 C20,-30 20,-26 22,-24Z" class="k2"/>
+<path d="M-30,-14 C-14,-20 4,-20 8,-14" class="k2"/>
+<path d="M-26,-18 C-22,-28 -16,-30 -14,-24 M8,-16 C6,-26 10,-32 14,-30" class="h"/>
+<path d="M-22,-14 L-22,26 M-16,-16 L-16,26 M-10,-17 L-10,26 M-4,-17 L-4,26 M2,-16 L2,26" class="h"/>
+<path d="M-12,-30 C-8,-38 4,-40 8,-32 C4,-34 -4,-34 -12,-30Z" class="h"/>
+`;
+// URSA MINOR — little bear hanging by its long tail from Polaris.
+ART.UMi = `
+<path class="w" d="M-18,26 C-30,40 -28,72 -4,86 C16,96 40,90 52,70 C60,54 52,36 36,28 C22,20 0,16 -18,26Z"/>
+<path d="M-18,26 C-32,40 -30,74 -4,88 C18,98 42,90 54,70 C62,54 54,34 36,26 C22,18 0,16 -18,26Z"/>
+<path d="M-4,26 C-8,4 -14,-18 -18,-40 C-20,-60 -14,-84 -4,-108 C0,-112 6,-108 4,-102 C-6,-82 -12,-60 -10,-40 C-6,-18 0,4 6,26" />
+<path d="M0,-40 C-2,-60 2,-80 -2,-100" class="h"/>
+<path d="M54,70 C64,72 74,80 76,90 C70,90 64,86 58,82" />
+<path d="M62,88 C66,94 64,100 60,100 M76,90 C82,84 84,78 80,74 C76,76 74,80 74,84" class="h"/>
+<circle cx="66" cy="84" r="1.6" class="f"/>
+<path d="M40,88 C42,100 42,110 40,118 L50,118 C52,108 52,98 52,88 M40,118 C36,124 46,126 50,118" />
+<path d="M4,88 C2,100 2,110 0,118 L10,118 C12,108 14,98 14,88 M0,118 C-4,124 6,126 10,118" />
+<path d="M-8,40 C0,50 12,54 24,50 M-6,60 C6,70 22,72 34,64" class="h"/>
+`;
+// CEPHEUS — the king standing crowned, sceptre raised to Errai, robe to η.
+ART.Cep = `
+<path class="w" d="M-26,-66 C-10,-78 20,-74 30,-62 C40,-30 44,0 40,26 C36,50 20,70 -12,76 C-40,72 -50,50 -46,20 C-44,-10 -36,-40 -26,-66Z"/>
+<circle cx="0" cy="-92" r="13"/>
+<path d="M-12,-100 L-14,-116 L-6,-108 L0,-120 L6,-108 L14,-116 L12,-100 Z"/>
+<path d="M-10,-100 C-4,-106 6,-106 12,-100" class="h"/>
+<path d="M-8,-80 C-18,-74 -26,-70 -30,-62 C-38,-34 -46,-6 -46,20 C-46,50 -40,70 -32,78 L-40,78 L-38,70 M8,-80 C18,-74 26,-70 32,-62 C40,-34 44,0 42,26 C40,50 28,70 -14,78" />
+<path d="M-32,78 C-36,84 -18,84 -14,78 M-14,78 L-16,70" />
+<path d="M-30,-56 C-40,-46 -46,-30 -50,-14 C-52,-6 -46,-4 -46,-10 C-42,-24 -38,-40 -30,-50" />
+<path d="M-50,-14 C-56,-12 -58,-4 -52,-2 C-46,-4 -46,-8 -48,-12" class="k2"/>
+<path d="M-52,-8 L-54,-130" class="k2"/>
+<path d="M-54,-130 C-60,-136 -58,-142 -52,-142 C-46,-142 -46,-136 -50,-132 M-54,-134 L-54,-146 M-60,-132 L-48,-132" />
+<path d="M32,-56 C40,-36 44,-10 48,12 C50,24 46,30 40,28 C36,10 32,-10 26,-30 M48,12 C60,16 74,20 88,26 C94,28 92,34 86,32 C74,28 60,24 48,22" />
+<path d="M86,32 C90,40 84,46 78,42 M60,20 C64,28 62,36 58,40" class="h"/>
+<path d="M-24,-40 C-10,-30 10,-30 24,-40 M-30,0 C-14,10 14,10 30,0 M-36,40 C-16,50 16,50 36,40" class="h"/>
+<path d="M-20,-62 C-10,-56 -4,-50 -2,-40 M20,-62 C10,-56 4,-50 2,-40" class="h"/>
+`;
+// DRACO — the dragon, head at the lozenge, body winding between the Bears to the tail at Giausar.
+ART.Dra = `
+<path d="M-90,100 C-110,60 -140,-20 -136,-60 C-130,-90 -100,-100 -71,-84 C-40,-60 -30,-20 -26,0 C-14,30 14,50 24,43 C40,50 56,64 55,69 C80,66 100,50 102,54 C130,30 160,-10 166,-39 C180,-80 190,-120 191,-148 C200,-170 214,-190 224,-205" class="wb"/>
+<path d="M-90,100 C-110,60 -140,-20 -136,-60 C-130,-90 -100,-100 -71,-84 C-40,-60 -30,-20 -26,0 C-14,30 14,50 24,43 C40,50 56,64 55,69 C80,66 100,50 102,54 C130,30 160,-10 166,-39 C180,-80 190,-120 191,-148 C200,-170 214,-190 224,-205" class="k2"/>
+<path d="M-80,98 C-100,60 -128,-10 -124,-56 C-118,-80 -96,-90 -74,-74 C-46,-50 -36,-14 -28,8 C-16,36 12,58 28,52 C42,58 54,72 60,76 C84,72 106,56 112,58 C140,32 166,-8 176,-40 C188,-80 200,-118 202,-146 C210,-166 220,-186 226,-198" class="h"/>
+<path d="M-134,-40 L-146,-48 M-130,-20 L-142,-24 M-122,0 L-134,4 M-114,20 L-126,26 M-102,50 L-112,58 M-40,-40 L-52,-36 M-32,-20 L-44,-16 M-24,6 L-36,12 M-8,30 L-16,42 M14,50 L8,62 M112,44 L118,32 M130,24 L138,14 M150,0 L160,-6 M164,-30 L176,-30 M172,-60 L184,-58 M180,-90 L192,-88 M186,-120 L198,-118" />
+<path d="M-90,100 C-104,110 -116,124 -120,138 C-116,142 -110,140 -104,134 C-98,128 -94,120 -92,112 M-90,100 C-78,104 -70,116 -70,130 C-76,134 -84,130 -90,124" class="k2"/>
+<path d="M-120,138 C-112,140 -100,136 -92,128 M-92,128 C-84,132 -76,132 -70,130" />
+<path d="M-100,126 C-98,122 -94,122 -92,126 M-114,132 C-112,128 -108,128 -106,132" class="h"/>
+<circle cx="-84" cy="112" r="2.2" class="f"/>
+<path d="M-86,100 C-84,92 -80,86 -74,84 M-96,98 C-100,90 -100,82 -96,76" class="k2"/>
+<path d="M-120,138 L-124,146 M-112,140 L-114,148 M-104,136 L-106,144 M-80,132 L-80,140 M-72,130 L-70,138" />
+<path d="M224,-205 C230,-212 236,-212 238,-206 C232,-204 228,-202 224,-205Z" class="f" opacity=".5"/>
+`;
+// HERCULES — kneeling hero, head at Rasalgethi, keystone torso, club raised, foot on Draco.
+ART.Her = `
+<path class="w" d="M-8,-52 C10,-64 40,-70 56,-75 C66,-50 70,-26 64,-2 C50,10 30,14 23,7 C10,30 -2,50 -9,69 C-30,74 -50,64 -60,50 L-44,40 L-20,30 C-16,10 -12,-20 -8,-52Z"/>
+<circle cx="-9" cy="160" r="15"/>
+<path d="M-20,150 C-16,140 0,140 2,150 C-2,146 -14,146 -20,150Z" class="f" opacity=".35"/>
+<path d="M-24,168 C-24,176 -18,180 -9,180 C0,180 6,176 6,168 M-9,178 L-9,186" class="h"/>
+<path d="M-16,144 C-14,120 -12,96 -9,72 M-2,144 C-4,120 -4,96 -4,72" />
+<path d="M-9,69 C-24,74 -44,66 -60,50 C-64,36 -50,30 -44,40 C-36,50 -22,54 -9,52 M-9,69 C4,60 12,40 18,20 C20,12 24,8 23,7" />
+<path d="M23,7 C36,12 50,10 64,-2 C70,-26 66,-50 56,-75 C40,-70 12,-64 -8,-52 C-12,-20 -16,10 -20,30 C-16,40 -12,48 -9,52" />
+<path d="M0,-40 C14,-46 30,-50 44,-54 M-4,-10 C10,-14 30,-20 48,-24 M-8,20 C6,16 24,10 38,4" class="h"/>
+<path d="M-8,-52 C-30,-58 -60,-62 -91,-61 C-100,-60 -100,-70 -92,-70 C-70,-72 -50,-78 -40,-96 C-36,-120 -44,-140 -51,-149 C-56,-154 -48,-158 -44,-152 C-36,-136 -30,-116 -32,-96 C-38,-76 -56,-66 -70,-64" />
+<path d="M-51,-149 C-56,-156 -64,-158 -70,-154 C-64,-150 -58,-148 -52,-146" class="k2"/>
+<path d="M56,-75 C64,-90 70,-104 70,-113 C76,-130 86,-146 92,-157 C96,-164 104,-160 100,-152 C94,-140 86,-124 82,-110 C80,-100 74,-90 68,-80" />
+<path d="M92,-157 C96,-166 106,-170 110,-164 C104,-162 98,-158 94,-154" class="k2"/>
+<path d="M-9,69 C-24,64 -44,58 -60,50 M-60,50 C-76,44 -96,32 -110,24 C-120,20 -126,22 -125,26 C-114,32 -100,38 -86,44" />
+<path d="M-125,26 C-134,20 -132,10 -124,12 C-120,16 -122,22 -125,26Z" class="k2"/>
+<path d="M-126,16 C-140,4 -150,-10 -156,-24 M-126,16 C-116,-2 -110,-20 -110,-40 M-126,16 C-140,10 -152,10 -162,16" class="h"/>
+<path d="M-140,4 L-150,-2 M-146,-8 L-156,-14 M-116,-8 L-126,-10 M-112,-24 L-122,-26 M-136,10 L-144,4 M-150,12 L-158,6" class="h"/>
+<path d="M64,-2 C80,20 92,50 98,80 C102,96 106,110 121,123 C126,128 120,134 114,130 C100,116 92,100 88,84 C82,56 72,30 60,10" />
+<path d="M121,123 C130,126 132,134 124,136 L114,130" class="k2"/>
+<path d="M126,136 C136,150 144,166 148,184 C150,190 158,190 156,182 C150,162 140,146 130,132 Z" class="k2"/>
+<path d="M152,180 L142,184 M146,166 L136,170" class="h"/>
+`;
+// CORONA BOREALIS — Ariadne's jewelled crown.
+ART.CrB = `
+<path d="M-38,-19 C-42,-2 -40,10 -31,12 C-24,20 -14,24 -3,22 C6,24 14,22 21,13 C30,6 36,-2 35,-11 C32,-22 28,-30 23,-33" class="wb"/>
+<path d="M-38,-19 C-42,-2 -40,10 -31,12 C-24,20 -14,24 -3,22 C6,24 14,22 21,13 C30,6 36,-2 35,-11 C32,-22 28,-30 23,-33" class="k2"/>
+<path d="M-32,-24 C-34,-10 -32,0 -26,4 C-18,10 -10,14 -2,14 C6,14 14,12 20,6 C26,0 30,-6 28,-14 C26,-22 22,-28 18,-30" class="h"/>
+<path d="M-38,-19 L-46,-34 L-34,-30 Z M-31,12 L-38,26 L-24,22 Z M-3,22 L-4,40 L6,26 Z M21,13 L30,30 L32,14 Z M35,-11 L50,-8 L40,-20 Z M23,-33 L26,-48 L14,-36 Z" />
+<path d="M-13,20 L-16,32 M10,20 L14,32 M-36,-4 L-46,-2 M30,0 L42,4" class="h"/>
+<circle cx="-3" cy="12" r="2" class="f"/><circle cx="-20" cy="6" r="1.5" class="f"/><circle cx="14" cy="6" r="1.5" class="f"/>
+`;
+// AURIGA — the charioteer with the she-goat Capella on his shoulder and her kids in his hand.
+ART.Aur = `
+<path class="w" d="M-56,-34 C-40,-52 -14,-56 6,-46 C22,-30 20,-6 12,10 C4,30 -8,50 -18,70 C-40,76 -60,70 -74,54 C-76,30 -68,6 -56,-34Z"/>
+<circle cx="-32" cy="-74" r="14"/>
+<path d="M-46,-84 C-42,-98 -20,-96 -20,-82 C-24,-92 -40,-92 -46,-84Z" class="f" opacity=".35"/>
+<path d="M-50,-84 C-56,-96 -50,-108 -36,-110 C-22,-110 -14,-100 -16,-88" class="h"/>
+<path d="M-22,-62 C-8,-56 4,-50 8,-44 C18,-30 20,-8 14,10 C6,30 -4,50 -14,70 M-40,-62 C-52,-56 -60,-48 -64,-34 C-72,-6 -78,30 -74,54 C-70,66 -50,74 -14,70" />
+<path d="M-64,-34 C-62,-22 -60,-10 -56,0 M-56,10 C-52,20 -48,28 -42,34" class="h"/>
+<path d="M-74,54 C-78,72 -78,96 -60,120 C-50,132 -30,142 -5,146 C2,148 4,142 -2,138 C-24,132 -42,124 -52,110 C-64,92 -60,72 -50,58" />
+<path d="M-14,70 C-4,80 12,88 30,92 C42,96 50,96 58,98 C64,100 62,106 56,104 C40,102 24,100 8,96 C-4,90 -14,84 -20,74" />
+<path d="M-5,146 C-4,154 6,156 8,148 L-2,138 M58,98 C66,96 70,102 66,108 L56,104" />
+<path d="M8,-44 C24,-40 36,-30 42,-16 C46,-6 44,6 40,16 C34,20 30,14 30,8 M42,-16 C48,-20 52,-12 48,-6" />
+<path d="M4,-48 C0,-60 8,-72 20,-72 C30,-72 34,-64 36,-54 C40,-52 46,-52 46,-46 C40,-42 34,-42 30,-44 C24,-40 16,-40 10,-44" class="k2"/>
+<path d="M20,-72 C18,-80 22,-86 26,-84 M30,-70 C34,-78 40,-80 40,-74" class="k2"/>
+<path d="M14,-70 C18,-66 24,-64 30,-66" class="h"/>
+<circle cx="32" cy="-62" r="1.8" class="f"/>
+<path d="M30,8 C30,16 36,26 42,30 C48,32 52,26 48,20 M36,20 C34,26 30,30 26,30" class="k2"/>
+<path d="M42,30 C40,36 44,40 48,36 M26,30 C22,34 22,40 26,40" class="h"/>
+<path d="M-64,-34 C-80,-30 -96,-20 -110,-4 C-116,2 -110,8 -104,2 C-92,-10 -78,-18 -66,-22" />
+<path d="M-110,-4 C-118,0 -122,10 -116,14 C-110,10 -108,4 -108,0" class="k2"/>
+<path d="M-116,14 C-122,20 -128,34 -126,52 M-116,14 C-124,26 -130,44 -130,62" class="h"/>
+<path d="M-40,-40 C-30,-34 -16,-34 -6,-40 M-46,-10 C-30,0 -10,0 4,-8 M-52,26 C-36,36 -14,36 -2,28" class="h"/>
+`;
+// CANIS MAJOR — the great dog leaping west, Sirius at the jaw.
+ART.CMa = `
+<path class="w" d="M-4,-100 C8,-96 20,-84 26,-66 C40,-56 60,-50 74,-40 L70,-30 C56,-36 40,-36 30,-32 C24,-16 18,-2 6,10 C-8,30 -20,50 -22,70 L-8,70 L-14,80 L-30,78 L-36,60 C-50,64 -60,70 -70,74 L-70,64 C-56,58 -46,48 -44,36 C-40,20 -30,4 -20,-10 C-18,-30 -14,-50 -12,-60 C-20,-70 -26,-80 -22,-90 Z"/>
+<path d="M-4,-100 C-2,-92 0,-84 6,-78 C14,-74 22,-72 26,-66 C36,-58 44,-56 48,-52 C40,-52 32,-56 26,-58 C22,-48 20,-38 18,-30 M-4,-100 C-12,-100 -22,-96 -26,-84 C-22,-74 -16,-70 -12,-60" />
+<path d="M-26,-84 C-32,-90 -34,-100 -30,-106 C-24,-104 -22,-96 -22,-90 M-4,-100 C-2,-108 0,-114 2,-116 C4,-110 4,-104 2,-100" class="k2"/>
+<circle cx="-2" cy="-78" r="2" class="f"/>
+<path d="M14,-64 C16,-60 18,-58 20,-58 M16,-58 C18,-52 22,-52 24,-56" class="h"/>
+<path d="M18,-30 C34,-36 54,-40 72,-42 C80,-42 82,-36 76,-34 C58,-32 42,-28 30,-24 C24,-10 18,4 6,14 C-8,32 -18,52 -20,72 C-20,78 -12,80 -10,74 C-8,54 0,36 10,20 C20,30 30,44 44,56 C56,66 66,74 74,80 C80,84 76,92 68,86 C56,78 44,66 32,56 C24,48 16,40 10,32" />
+<path d="M-20,72 C-28,74 -30,82 -22,84 L-10,80 M74,80 C82,80 84,88 76,92" class="k2"/>
+<path d="M-12,-60 C-16,-40 -20,-20 -24,0 C-30,20 -38,40 -34,58 C-32,66 -26,70 -22,72" />
+<path d="M-34,58 C-46,60 -58,64 -70,72 C-76,76 -80,70 -74,66 C-64,60 -52,54 -40,50" />
+<path d="M-70,72 C-80,72 -84,66 -80,60 L-74,66" class="k2"/>
+<path d="M-40,50 C-38,60 -40,70 -44,78 M-24,0 C-14,6 -4,6 6,0 M-20,-30 C-10,-24 2,-24 12,-30" class="h"/>
+<path d="M2,20 C-4,32 -8,44 -10,56" class="h"/>
+`;
+// CANIS MINOR — the lesser dog, running, Procyon at the flank.
+ART.CMi = `
+<path class="w" d="M20,-26 C30,-30 36,-22 30,-12 C22,-4 10,2 0,8 C-10,14 -18,20 -26,22 L-24,12 C-16,4 -8,-4 2,-10 C8,-16 14,-22 20,-26Z"/>
+<path d="M22,-28 C30,-32 38,-24 32,-16 C26,-8 12,0 0,8 C-10,14 -20,20 -28,22 C-32,24 -34,18 -30,16 C-20,10 -10,4 0,-2 C10,-8 16,-16 22,-28Z" />
+<path d="M22,-28 C26,-34 24,-40 20,-38 C18,-34 18,-30 22,-28 M32,-20 C36,-24 40,-22 38,-16 C34,-16 32,-18 32,-20" class="k2"/>
+<circle cx="28" cy="-22" r="1.4" class="f"/>
+<path d="M-28,22 C-34,26 -40,26 -44,20 M-30,16 C-36,12 -40,6 -40,0" />
+<path d="M0,8 C-2,16 -4,22 -8,28 M8,4 C10,12 12,18 12,24 M-24,14 C-28,20 -30,26 -30,32 M-18,20 C-20,26 -22,32 -20,36" />
+<path d="M-8,28 L-2,30 M12,24 L18,26 M-30,32 L-24,34 M-20,36 L-14,38" class="k2"/>
+`;
+// CANCER — the crab, claws raised toward ι, legs to Tarf and Acubens.
+ART.Cnc = `
+<path class="w" d="M-40,-4 C-40,-30 -20,-44 0,-44 C24,-44 40,-30 40,-4 C40,20 24,36 0,36 C-22,36 -40,20 -40,-4Z"/>
+<path d="M-40,-4 C-42,-30 -22,-46 0,-46 C24,-46 42,-30 42,-4 C42,20 24,38 0,38 C-22,38 -42,20 -40,-4Z" class="k2"/>
+<path d="M-30,-10 C-20,-20 -8,-24 0,-24 C10,-24 22,-20 30,-10 M-32,8 C-20,18 -8,22 0,22 C10,22 20,18 32,8" class="h"/>
+<path d="M-8,-40 C-6,-44 -2,-46 0,-42 M6,-40 C8,-44 12,-46 14,-42" class="k2"/>
+<path d="M-14,-44 C-14,-60 -12,-80 -12,-100 C-12,-108 -6,-110 -6,-102 C-6,-84 -8,-64 -6,-48" />
+<path d="M-12,-100 C-16,-112 -14,-122 -6,-124 C-2,-116 -4,-108 -6,-102 M-12,-100 C-18,-104 -22,-112 -18,-118" class="k2"/>
+<path d="M14,-44 C22,-56 32,-70 42,-80 C48,-84 52,-78 46,-72 C36,-62 28,-50 22,-40" />
+<path d="M42,-80 C44,-92 50,-98 56,-92 C56,-84 50,-78 46,-72 M42,-80 C36,-84 34,-90 38,-96" class="k2"/>
+<path d="M-36,10 C-44,20 -52,36 -56,50 C-60,60 -50,64 -48,56 C-46,44 -40,32 -34,22 M-36,20 C-50,30 -60,50 -62,64 M-30,30 C-40,46 -46,60 -46,74 M-20,34 C-24,50 -26,62 -22,76" />
+<path d="M36,10 C44,24 52,44 58,60 C64,68 70,64 66,56 C60,46 52,32 44,20 M38,20 C52,34 60,52 64,70 M30,30 C40,46 44,60 44,78 M18,34 C22,50 24,64 20,80" />
+<path d="M-48,56 L-54,62 M-62,64 L-68,68 M-46,74 L-50,80 M-22,76 L-24,84 M66,56 L72,60 M64,70 L70,74 M44,78 L48,84 M20,80 L20,88" class="k2"/>
+`;
+// VIRGO — the winged maiden reclining, head at ν, wing to Vindemiatrix, wheat ear at Spica.
+ART.Vir = `
+<path class="w" d="M236,-70 C240,-50 236,-30 224,-16 C200,-6 170,0 140,4 C110,8 80,12 50,10 C20,10 -10,4 -40,-2 C-80,-10 -140,-6 -200,-20 L-230,-30 L-222,-44 C-160,-30 -100,-32 -50,-30 C-10,-30 30,-26 60,-36 C90,-46 130,-56 180,-70 C200,-76 220,-80 236,-70Z"/>
+<circle cx="250" cy="-86" r="14"/>
+<path d="M240,-96 C244,-108 262,-108 262,-94 C258,-102 246,-102 240,-96Z" class="f" opacity=".35"/>
+<path d="M262,-94 C270,-90 270,-76 262,-70 M238,-80 C232,-70 234,-60 240,-56" class="h"/>
+<path d="M238,-74 C226,-64 214,-52 200,-42 C170,-22 140,-10 110,-2 C80,4 50,8 20,6 C-20,4 -60,-4 -100,-10 C-140,-16 -180,-20 -218,-30 M244,-72 C236,-50 226,-30 210,-14 C180,-2 150,4 120,8 C90,12 60,14 30,14 C-10,12 -50,4 -90,2 C-130,0 -170,-2 -210,-14" />
+<path d="M-218,-30 C-228,-34 -232,-26 -224,-22 L-210,-14 M-222,-24 C-230,-12 -232,4 -226,20 M-222,-24 C-234,-16 -240,-2 -236,14" />
+<path d="M-140,-10 C-160,0 -180,20 -200,40 C-206,48 -214,50 -216,46 C-208,36 -196,24 -186,12 C-170,0 -160,-6 -150,-10 M-216,46 C-224,48 -226,56 -218,58 C-212,54 -212,48 -214,44" />
+<path d="M-90,2 C-100,16 -114,30 -130,42 C-138,50 -144,52 -146,48 C-136,38 -126,28 -116,16 C-108,6 -100,0 -96,-2 M-146,48 C-154,50 -156,58 -148,60 C-144,56 -142,50 -142,46" />
+<path d="M40,-30 C42,-60 46,-90 48,-120 C48,-128 56,-128 56,-120 C56,-94 60,-70 64,-46 M48,-120 C40,-100 30,-80 20,-64 M56,-120 C64,-100 72,-84 78,-70 C82,-60 76,-52 68,-56 M48,-120 C50,-130 52,-138 54,-146" class="h"/>
+<path d="M28,-30 C24,-60 30,-90 42,-118 C50,-128 60,-126 62,-118 C70,-96 70,-72 64,-48 M30,-56 L44,-56 M30,-70 L46,-74 M32,-84 L48,-90 M36,-98 L52,-104" />
+<path d="M40,-30 C46,-8 50,10 46,30 M-40,-2 C-50,10 -56,24 -58,40" class="h"/>
+<path d="M60,-36 C40,-20 20,0 8,20 C0,40 -6,60 -10,80 C-12,88 -6,90 -4,84 C0,64 4,44 12,24 C22,10 36,-6 54,-20" />
+<path d="M-10,80 C-16,84 -18,92 -12,94 C-6,92 -6,86 -4,84" class="k2"/>
+<path d="M-10,90 C-14,96 -12,104 -8,110 M-10,90 C-6,96 -4,104 -6,112 M-12,96 L-18,100 M-10,104 L-16,110 M-8,98 L-2,102 M-6,106 L0,110 M-14,104 L-20,104 M-8,112 L-10,120" />
+<path d="M170,-60 C180,-54 190,-50 200,-52 M120,-40 C130,-30 140,-28 150,-32 M60,-10 C70,-6 80,-6 90,-10 M-20,-12 C-10,-6 0,-6 10,-10" class="h"/>
+<path d="M-60,-8 C-70,-8 -78,-14 -80,-24 M-100,-6 C-110,-8 -120,-14 -122,-24" class="h"/>
+`;
+// LIBRA — the scales hanging from Zubeneschamali, pans at Brachium and υ/τ.
+ART.Lib = `
+<path d="M8,-114 C10,-124 4,-130 0,-124 C-2,-118 2,-114 8,-114Z" class="k2"/>
+<path d="M8,-114 L18,-72 L-10,-60 M18,-72 L54,-70" class="h"/>
+<path d="M-40,-58 C0,-52 40,-48 74,-46 C80,-46 80,-40 74,-40 C40,-42 0,-46 -40,-52 C-46,-52 -46,-58 -40,-58Z" class="k2"/>
+<path d="M18,-72 L14,-54 M8,-114 L18,-72" class="k2"/>
+<path d="M74,-46 C70,-20 64,10 58,36 M64,-42 C56,-16 50,10 44,36" />
+<path d="M-40,-58 C-42,-20 -44,20 -46,68 M-32,-56 C-36,-20 -38,20 -38,68" />
+<path d="M22,40 C34,48 52,50 66,42 C70,52 62,60 46,62 C30,62 20,52 22,40Z" class="k2"/>
+<path class="w" d="M22,40 C34,48 52,50 66,42 C70,52 62,60 46,62 C30,62 20,52 22,40Z"/>
+<path d="M-62,70 C-50,78 -30,80 -18,72 C-14,82 -22,90 -40,92 C-56,92 -66,82 -62,70Z" class="k2"/>
+<path class="w" d="M-62,70 C-50,78 -30,80 -18,72 C-14,82 -22,90 -40,92 C-56,92 -66,82 -62,70Z"/>
+<path d="M28,48 C40,54 54,54 62,48 M-56,78 C-44,84 -28,84 -22,78" class="h"/>
+<path d="M16,-52 C14,-40 14,-30 14,-20 M8,-118 C2,-120 -2,-116 0,-110" class="h"/>
+`;
+// SAGITTARIUS — centaur archer drawing his bow toward the Scorpion, cloak flying behind.
+ART.Sgr = `
+<path class="w" d="M-46,-56 C-30,-70 -8,-70 4,-58 C10,-40 12,-20 8,0 C20,4 30,10 40,10 L40,20 C30,20 18,20 6,20 C-14,18 -30,30 -40,30 C-60,30 -90,26 -110,20 C-120,10 -116,-6 -100,-4 C-80,0 -60,6 -44,6 C-50,-14 -52,-36 -46,-56Z"/>
+<circle cx="-30" cy="-84" r="12"/>
+<path d="M-40,-92 C-36,-104 -20,-104 -18,-92 C-22,-98 -34,-98 -40,-92Z" class="f" opacity=".35"/>
+<path d="M-42,-84 C-52,-76 -60,-64 -62,-50 C-52,-56 -46,-64 -44,-74" class="h"/>
+<path d="M-24,-72 C-10,-66 0,-56 4,-44 C10,-30 12,-14 8,0 M-40,-72 C-50,-62 -54,-46 -50,-30 C-48,-20 -46,-10 -44,4" />
+<path d="M-38,-56 C-28,-50 -14,-50 -4,-56 M-40,-30 C-28,-24 -14,-24 -2,-30" class="h"/>
+<path d="M4,-44 C20,-38 34,-28 44,-14 C50,-6 52,2 54,10 C56,16 62,14 60,8 C56,-4 50,-16 40,-26 C30,-36 18,-44 8,-48" />
+<path d="M54,10 C60,12 64,8 62,2 L58,-4" class="k2"/>
+<path d="M-40,-60 C-46,-46 -42,-34 -36,-26 C-30,-20 -26,-14 -28,-8 C-22,-6 -18,-8 -20,-14 C-24,-20 -28,-28 -30,-38 C-30,-46 -32,-54 -34,-62" />
+<path d="M-28,-8 C-22,-4 -20,-8 -20,-14" class="k2"/>
+<path d="M47,-31 C56,-18 62,0 60,14 C58,36 54,50 51,60" class="k2"/>
+<path d="M47,-31 L51,60" class="h"/>
+<path d="M47,-31 C44,-36 44,-40 48,-42 M51,60 C48,64 48,68 52,68" />
+<path d="M-28,-10 L92,24" class="k2"/>
+<path d="M92,24 L100,26 L92,18 M92,24 L92,30" class="k2"/>
+<path d="M-28,-10 L-36,-16 M-28,-10 L-36,-4" class="h"/>
+<path d="M8,0 C20,4 34,8 42,8 C42,14 38,20 30,22 C16,22 6,20 -4,18 C-20,24 -40,28 -60,28 C-84,28 -104,22 -114,10 C-120,2 -114,-6 -104,-4 C-84,0 -64,4 -44,4" />
+<path d="M-4,18 C-14,10 -26,8 -44,4 M-60,28 C-58,16 -60,6 -66,-2 M-90,26 C-92,14 -96,4 -100,-2" class="h"/>
+<path d="M-44,4 C-50,30 -58,70 -68,124 C-70,132 -60,134 -58,126 C-50,80 -44,50 -36,26 M-58,126 C-60,140 -62,154 -64,166 C-64,172 -56,172 -56,166 C-54,152 -52,140 -50,128" />
+<path d="M-64,166 C-70,170 -66,178 -58,176 L-56,166" class="k2"/>
+<path d="M-30,24 C-24,50 -20,80 -20,110 C-20,116 -12,116 -12,110 C-12,80 -12,50 -8,22" />
+<path d="M-20,110 C-24,116 -20,122 -12,120 L-12,110" class="k2"/>
+<path d="M-100,-4 C-110,-14 -120,-26 -130,-40 C-134,-46 -128,-50 -124,-44 C-116,-32 -108,-20 -100,-10 M-114,10 C-124,8 -134,0 -140,-10" />
+<path d="M-124,-44 C-132,-54 -140,-58 -148,-54 M-130,-40 C-138,-50 -146,-52 -152,-48" class="h"/>
+<path d="M-24,-72 C0,-80 30,-84 60,-80 C74,-78 84,-74 90,-70 C80,-64 68,-60 56,-60 C40,-58 20,-56 8,-52" class="h"/>
+<path d="M20,-70 C30,-68 42,-66 54,-64 M14,-60 C26,-60 40,-62 52,-66" class="h"/>
+`;
+// CAPRICORNUS — the sea-goat, horned head at Algedi and Dabih, fish tail to Deneb Algedi.
+ART.Cap = `
+<path class="w" d="M126,-70 C116,-76 104,-70 100,-58 C80,-44 60,-30 40,-20 C20,-10 4,-2 -20,-6 C-44,-6 -66,-2 -80,-8 L-100,-24 L-104,-14 L-92,-2 C-70,10 -50,26 -44,40 C-20,36 6,30 30,40 C38,60 40,72 36,84 L48,80 C56,70 58,54 54,40 C70,30 90,10 110,-20 C122,-36 130,-54 126,-70Z"/>
+<path d="M126,-70 C118,-80 104,-76 98,-62 C90,-50 82,-40 74,-32 M122,-64 C128,-52 124,-36 112,-22 C100,-8 84,4 70,14" />
+<path d="M98,-62 C88,-72 74,-80 60,-84 C74,-82 88,-76 100,-66 M120,-72 C124,-90 130,-104 140,-114 C134,-98 128,-84 124,-70" class="k2"/>
+<path d="M104,-60 C110,-56 116,-56 120,-60" class="h"/>
+<circle cx="112" cy="-58" r="1.8" class="f"/>
+<path d="M126,-46 C128,-38 126,-32 120,-30 M108,-72 C104,-78 98,-80 92,-76" class="h"/>
+<path d="M112,-22 C120,-14 122,-4 118,6 M100,-8 C104,0 104,10 100,16" class="h"/>
+<path d="M74,-32 C56,-24 40,-20 24,-14 C4,-8 -16,-6 -40,-8 C-60,-10 -80,-14 -96,-24 M70,14 C52,26 30,34 8,36 C-14,38 -36,38 -58,30 C-74,26 -88,10 -94,-4" />
+<path d="M-96,-24 C-104,-34 -110,-46 -106,-56 C-100,-44 -92,-36 -82,-30 M-94,-4 C-102,4 -112,10 -122,8 C-112,2 -104,-6 -98,-14" class="k2"/>
+<path d="M-106,-56 L-92,-30 M-122,8 L-98,-14 M-100,-34 L-90,-18 M-104,-46 L-96,-26 M-112,4 L-100,-8" class="h"/>
+<path d="M30,40 C36,54 40,68 36,84 C34,90 42,92 44,86 C50,68 52,52 50,38 M8,36 C4,50 0,66 -4,80 C-6,86 2,88 4,82 C10,66 14,50 16,36" />
+<path d="M36,84 C30,88 32,94 40,94 L44,86 M-4,80 C-10,84 -8,90 0,90 L4,82" class="k2"/>
+<path d="M-40,-8 C-44,10 -46,24 -44,40 M-58,30 C-54,18 -56,6 -60,-8 M-10,-6 C-6,10 -8,22 -8,36" class="h"/>
+<path d="M-20,-4 C-30,0 -40,10 -46,20 M6,-12 C-6,-4 -14,4 -22,14 M32,-16 C22,-8 12,2 4,12 M52,-26 C46,-16 36,-6 26,4" class="h"/>
+`;
+// AQUARIUS — the water-bearer pouring from his jar; the stream winds south toward Fomalhaut.
+ART.Aqr = `
+<path class="w" d="M52,-76 C70,-84 100,-84 130,-72 C146,-64 152,-48 148,-30 C140,-10 122,4 100,10 C90,30 84,50 78,68 L58,68 L66,30 C58,20 50,10 46,0 C42,-20 44,-50 52,-76Z"/>
+<circle cx="100" cy="-62" r="14"/>
+<path d="M90,-72 C94,-84 112,-84 112,-70 C108,-78 96,-78 90,-72Z" class="f" opacity=".35"/>
+<path d="M112,-72 C118,-80 120,-90 116,-96 C110,-92 108,-84 108,-78" class="h"/>
+<path d="M88,-52 C70,-48 56,-40 50,-26 C44,-10 46,10 52,30 C58,48 62,60 60,70 M112,-52 C128,-48 142,-40 148,-26 C152,-10 146,6 132,14 C112,22 96,28 84,42 C80,54 80,64 80,70" />
+<path d="M60,70 C54,76 62,82 70,78 L80,70 C86,76 92,74 90,66 M60,70 L58,86 L70,86 L72,72 M80,70 L82,86 L94,86 L90,72" />
+<path d="M62,-30 C70,-20 84,-16 100,-18 C118,-20 132,-26 138,-36 M60,0 C74,10 96,12 116,6 C126,2 134,-4 138,-10" class="h"/>
+<path d="M50,-26 C36,-32 24,-44 12,-58 C6,-64 12,-70 18,-64 C26,-52 36,-42 48,-36" />
+<path d="M12,-58 C4,-64 -4,-60 -2,-52 C4,-48 10,-52 12,-58Z" class="k2"/>
+<path d="M-30,-86 C-28,-96 -4,-100 6,-92 C10,-84 8,-70 2,-60 C-6,-56 -20,-56 -26,-62 C-30,-70 -32,-78 -30,-86Z" class="k2"/>
+<path class="w" d="M-30,-86 C-28,-96 -4,-100 6,-92 C10,-84 8,-70 2,-60 C-6,-56 -20,-56 -26,-62 C-30,-70 -32,-78 -30,-86Z"/>
+<path d="M-24,-94 C-16,-102 0,-102 6,-96 M-26,-78 C-14,-74 -4,-74 6,-78 M-28,-68 C-16,-64 -6,-64 2,-68" class="h"/>
+<path d="M-26,-62 C-36,-46 -48,-28 -58,-8 C-64,10 -62,30 -56,50 C-54,66 -60,78 -70,90 C-80,110 -94,128 -102,144" class="k2"/>
+<path d="M-20,-60 C-30,-44 -42,-26 -50,-8 C-54,8 -52,30 -46,50 C-44,64 -50,76 -60,90 C-70,110 -84,126 -92,142" />
+<path d="M-32,-56 C-44,-36 -56,-16 -66,4 C-70,20 -68,40 -66,56 C-66,72 -74,84 -84,98 C-94,114 -104,128 -110,144" class="h"/>
+<path d="M-58,-8 C-70,-14 -84,-22 -100,-22 C-110,-20 -116,-12 -118,-4 M-62,10 C-76,10 -92,10 -108,8 C-116,10 -120,16 -120,24" class="h"/>
+<path d="M-56,50 C-70,50 -86,44 -100,36 C-110,30 -116,22 -118,16" class="h"/>
+<path d="M148,-26 C170,-16 200,0 230,14 C244,20 256,26 264,30 C270,32 268,40 260,36 C240,28 220,20 200,12 C180,6 160,0 144,-6" />
+<path d="M264,30 C272,26 276,34 270,40 L260,36" class="k2"/>
+<path d="M200,12 C204,24 200,40 190,50 M230,14 C232,28 226,44 216,56 M170,2 C170,16 166,30 160,40" class="h"/>
+`;
+// PISCES — two fishes tied tail to tail by a long cord knotted at Alrescha.
+ART.Psc = `
+<path class="w" d="M140,68 C150,44 180,38 210,50 C226,56 240,62 250,68 C240,72 226,80 210,86 C180,96 150,90 140,68Z"/>
+<path d="M140,68 C150,44 180,38 210,50 C226,56 240,62 250,68 C240,72 226,80 210,86 C180,96 150,90 140,68Z" class="k2"/>
+<path d="M250,68 C258,58 266,52 274,50 C270,60 270,76 274,88 C266,84 258,76 250,68Z" />
+<path d="M160,50 C166,44 176,40 186,40 M154,80 C164,90 176,92 190,90 M170,60 C180,58 194,58 208,62 M168,72 C180,74 194,74 206,70" class="h"/>
+<path d="M186,60 L190,52 L196,60 M196,72 L200,80 L206,72" class="h"/>
+<circle cx="154" cy="64" r="2" class="f"/>
+<path d="M140,68 C120,60 100,50 92,44 C88,40 96,36 100,40 C110,46 126,56 140,64" class="h"/>
+<path class="w" d="M-84,-110 C-104,-124 -110,-156 -100,-180 C-96,-192 -92,-200 -86,-208 C-80,-200 -74,-190 -70,-178 C-62,-154 -66,-124 -84,-110Z"/>
+<path d="M-84,-110 C-104,-124 -110,-156 -100,-180 C-96,-192 -92,-200 -86,-208 C-80,-200 -74,-190 -70,-178 C-62,-154 -66,-124 -84,-110Z" class="k2"/>
+<path d="M-86,-208 C-92,-216 -98,-222 -106,-224 C-100,-212 -96,-200 -94,-190 M-86,-208 C-80,-216 -74,-222 -66,-224 C-72,-212 -76,-200 -78,-190" />
+<path d="M-102,-160 C-96,-166 -88,-168 -78,-166 M-100,-140 C-94,-146 -86,-148 -76,-146 M-100,-124 C-94,-128 -86,-130 -76,-128" class="h"/>
+<circle cx="-84" cy="-120" r="2" class="f"/>
+<path d="M-84,-110 C-80,-100 -76,-90 -68,-80" class="h"/>
+<path d="M97,38 C60,34 20,30 -26,31 C-50,26 -70,30 -89,31 C-120,36 -150,46 -162,50 C-190,60 -210,72 -222,78 C-212,60 -190,30 -171,12 C-160,-10 -140,-36 -131,-50 C-110,-72 -92,-90 -80,-106" class="k2"/>
+<path d="M92,44 C56,40 20,36 -20,36 C-50,32 -70,36 -84,38 C-116,42 -146,52 -160,56 C-186,66 -206,78 -216,84 M-226,74 C-216,56 -196,26 -176,8 C-164,-14 -146,-40 -136,-54 C-116,-76 -98,-96 -86,-112" class="h"/>
+<path d="M-222,78 C-232,84 -238,78 -232,70 C-226,66 -220,70 -222,78Z M-224,70 C-230,72 -232,80 -226,84" class="k2"/>
+<path d="M-216,64 C-224,60 -230,64 -228,70 M-218,88 C-226,92 -228,84 -222,80" class="h"/>
+`;
+// ARIES — the ram, head with curled horns at Hamal, body stretching east.
+ART.Ari = `
+<path class="w" d="M56,6 C66,-6 70,-24 56,-32 C36,-38 10,-38 -20,-40 C-50,-44 -90,-42 -110,-30 C-124,-20 -126,0 -118,16 C-110,28 -90,32 -70,30 C-40,28 -10,26 20,26 C40,26 54,20 56,6Z"/>
+<path d="M56,6 C66,-6 72,-24 56,-32 C36,-40 10,-40 -20,-42 C-50,-46 -90,-44 -110,-32 C-126,-20 -128,0 -118,18 C-108,30 -88,34 -70,32 C-40,30 -10,28 20,28 C42,28 54,20 56,6Z" />
+<path d="M56,6 C64,10 74,12 80,8 C84,4 80,-2 76,-4 C72,-6 66,-4 62,0" class="k2"/>
+<circle cx="66" cy="-2" r="1.8" class="f"/>
+<path d="M62,-20 C74,-32 78,-46 68,-54 C58,-58 50,-50 52,-40 C54,-34 60,-30 66,-30 C70,-34 70,-42 64,-44 M58,-30 C66,-42 64,-56 54,-60 C42,-62 34,-52 38,-42 C40,-36 46,-32 52,-34" class="k2"/>
+<path d="M40,-48 C46,-50 52,-46 52,-40 M56,-54 C62,-56 66,-50 66,-44" class="h"/>
+<path d="M80,8 C78,14 74,18 68,18 M56,6 C60,12 60,18 56,22" class="h"/>
+<path d="M20,28 C18,40 14,52 12,64 L22,64 C24,52 28,40 32,28 M-60,30 C-64,42 -68,54 -70,66 L-60,66 C-56,54 -52,42 -48,30" />
+<path d="M12,64 C8,70 16,74 22,70 L22,64 M-70,66 C-74,72 -66,76 -60,72 L-60,66" class="k2"/>
+<path d="M-118,18 C-128,22 -136,30 -138,40 C-134,38 -128,32 -122,26" class="k2"/>
+<path d="M-90,-24 C-70,-20 -50,-28 -30,-24 M-96,4 C-76,12 -56,4 -36,10 M-20,-10 C0,-4 20,-10 40,-6 M-10,14 C10,20 30,14 46,16" class="h"/>
+<path d="M-100,-36 C-96,-30 -96,-22 -100,-16 M-40,-40 C-38,-32 -40,-24 -44,-18" class="h"/>
+`;
+// OPHIUCHUS — the serpent-bearer standing over the Scorpion, serpent held in both hands.
+ART.Oph = `
+<path class="w" d="M-60,-150 C-30,-160 10,-150 26,-130 C36,-100 30,-60 16,-20 C10,10 0,40 -6,60 L-30,60 L-50,20 C-70,-20 -90,-60 -94,-100 C-92,-130 -80,-146 -60,-150Z"/>
+<circle cx="-70" cy="-182" r="14"/>
+<path d="M-80,-192 C-76,-204 -60,-204 -58,-190 C-62,-198 -74,-198 -80,-192Z" class="f" opacity=".35"/>
+<path d="M-82,-172 C-84,-160 -78,-150 -68,-146 M-58,-172 C-52,-160 -50,-150 -56,-146" class="h"/>
+<path d="M-60,-150 C-30,-158 6,-150 26,-136 C36,-110 34,-70 22,-30 C16,4 8,36 4,60 M-80,-150 C-92,-136 -98,-116 -96,-96 C-90,-60 -70,-20 -50,20 C-40,40 -34,52 -30,64" />
+<path d="M-76,-120 C-60,-110 -30,-110 -4,-120 M-72,-86 C-56,-76 -30,-76 -4,-86 M-62,-50 C-48,-40 -26,-40 -4,-50 M-46,-10 C-36,-2 -20,-2 -2,-10" class="h"/>
+<path d="M-30,64 C-26,84 -20,100 -12,110 L0,110 C4,96 6,80 4,60 M-12,110 C-20,130 -28,150 -34,170 C-36,186 -36,200 -34,212 L-22,212 C-24,196 -22,180 -18,166 C-14,150 -8,130 -2,112" />
+<path d="M-34,212 C-40,220 -30,226 -20,220 L-22,212" class="k2"/>
+<path d="M-30,64 C-22,72 -12,74 -2,72" class="h"/>
+<path d="M4,60 C24,60 44,58 60,52 C72,50 80,60 82,70 C84,90 82,104 80,116 L92,116 C96,100 96,82 94,66 C92,52 84,42 72,40 C56,40 34,44 18,44" />
+<path d="M80,116 C74,122 86,128 92,122 L92,116" class="k2"/>
+<path d="M26,-136 C50,-120 76,-100 96,-80 C110,-66 122,-40 128,-14 C130,-6 138,-8 136,-16 C130,-40 118,-66 104,-84 C84,-106 58,-128 34,-140" />
+<path d="M128,-14 C132,-6 140,-4 140,-12 C138,-18 132,-20 128,-14Z" class="k2"/>
+<path d="M-80,-150 C-94,-130 -104,-100 -106,-70 C-110,-30 -122,10 -130,50 C-132,58 -122,60 -120,52 C-112,10 -100,-30 -98,-70 C-96,-100 -88,-128 -76,-146" />
+<path d="M-130,50 C-136,56 -134,64 -126,62 C-120,60 -120,54 -120,52" class="k2"/>
+<path d="M-134,60 C-100,60 -60,40 -20,10 C20,-20 60,-30 100,-20 C120,-14 132,-8 140,-4" class="wb"/>
+<path d="M-134,60 C-100,60 -60,40 -20,10 C20,-20 60,-30 100,-20 C120,-14 132,-8 140,-4" class="k2"/>
+<path d="M-126,66 C-96,68 -60,48 -22,18 C18,-12 60,-24 98,-12 C116,-6 130,0 138,4" class="h"/>
+<path d="M-100,58 L-102,50 M-80,52 L-82,44 M-60,40 L-62,32 M-40,26 L-42,18 M0,-4 L-4,-12 M20,-16 L18,-24 M40,-24 L40,-32 M60,-28 L62,-36 M80,-26 L84,-34 M100,-18 L106,-26" class="h"/>
+`;
+// SERPENS — the serpent in two halves: head (Caput) to the west, tail (Cauda) to the east.
+ART.Ser = `
+<path d="M150,-170 C130,-160 120,-140 130,-120 C150,-100 176,-100 186,-103 C176,-80 160,-60 156,-40 C148,-10 146,20 148,52 C150,70 146,86 140,100" class="wb"/>
+<path d="M150,-170 C130,-160 120,-140 130,-120 C150,-100 176,-100 186,-103 C176,-80 160,-60 156,-40 C148,-10 146,20 148,52 C150,70 146,86 140,100" class="k2"/>
+<path d="M150,-170 C166,-172 178,-164 178,-152 C176,-142 168,-136 158,-136 C144,-138 138,-150 142,-160" class="k2"/>
+<path d="M158,-136 C150,-130 144,-122 142,-116 M170,-160 C176,-150 174,-140 168,-136" class="h"/>
+<circle cx="164" cy="-154" r="2" class="f"/>
+<path d="M178,-152 C186,-150 192,-146 196,-140 C190,-142 184,-142 178,-146" class="k2"/>
+<path d="M132,-150 C126,-136 126,-120 136,-110 M160,-60 C156,-40 152,-20 154,0 M150,20 C148,40 148,60 146,80" class="h"/>
+<path d="M-130,176 C-124,156 -128,140 -140,140 C-160,140 -200,100 -230,60 C-250,40 -260,30 -280,10 C-310,-16 -340,-30 -363,-41" class="wb"/>
+<path d="M-130,176 C-124,156 -128,140 -140,140 C-160,140 -200,100 -230,60 C-250,40 -260,30 -280,10 C-310,-16 -340,-30 -363,-41" class="k2"/>
+<path d="M-140,166 C-134,150 -138,134 -150,132 C-176,128 -210,90 -240,52 C-258,32 -270,20 -290,2 C-318,-22 -344,-36 -366,-46" class="h"/>
+<path d="M-363,-41 C-370,-46 -376,-46 -380,-42 C-376,-40 -370,-40 -363,-41Z" class="f" opacity=".5"/>
+<path d="M-150,152 L-146,146 M-170,134 L-166,128 M-200,112 L-196,104 M-230,80 L-226,72 M-260,42 L-256,34 M-300,4 L-296,-4 M-330,-22 L-326,-30" class="h"/>
+`;
+// DELPHINUS — the dolphin leaping.
+ART.Del = `
+<path class="w" d="M-24,-22 C-14,-30 4,-30 14,-20 C20,-10 20,0 16,12 C14,22 16,30 20,36 C10,34 4,26 2,18 C-4,20 -12,18 -18,10 C-26,0 -28,-12 -24,-22Z"/>
+<path d="M-24,-22 C-14,-32 4,-32 14,-20 C22,-10 20,0 16,12 C14,22 16,30 20,36 C10,34 4,26 2,18 C-4,20 -12,18 -18,10 C-28,0 -30,-12 -24,-22Z" class="k2"/>
+<path d="M-24,-22 C-30,-26 -36,-26 -40,-22 C-34,-20 -30,-18 -26,-16" class="k2"/>
+<circle cx="-16" cy="-18" r="1.8" class="f"/>
+<path d="M-6,-30 C-6,-40 0,-44 6,-40 C4,-34 0,-30 -4,-28" />
+<path d="M20,36 C26,38 30,44 30,50 C24,46 20,44 16,44 C12,50 6,52 0,50 C6,46 10,42 14,38" class="k2"/>
+<path d="M-16,-8 C-8,-4 2,-4 10,-8 M-12,4 C-4,8 4,8 10,4" class="h"/>
+`;
+// CORVUS — the crow perched, beak toward Crater and the cup it never reached.
+ART.Crv = `
+<path class="w" d="M28,32 C36,26 40,14 34,6 C26,-4 12,-8 0,-14 C-10,-22 -18,-34 -26,-46 L-30,-44 C-22,-30 -16,-16 -10,-4 C-6,6 -6,18 -10,26 C-2,30 12,34 28,32Z"/>
+<path d="M28,32 C38,26 42,14 36,4 C28,-6 14,-10 2,-16 C-8,-24 -16,-36 -24,-48 M-30,-44 C-22,-30 -16,-14 -12,-2 C-8,10 -8,20 -12,28 C-2,32 14,36 28,32" />
+<path d="M28,32 C34,38 40,42 46,44 C40,46 34,46 28,44 C26,40 26,36 28,32Z" class="k2"/>
+<circle cx="28" cy="26" r="1.8" class="f"/>
+<path d="M-24,-48 C-28,-52 -32,-52 -34,-48 C-30,-46 -28,-46 -24,-48Z" class="f" opacity=".5"/>
+<path d="M2,-16 C10,-6 20,4 28,14 M-6,-6 C4,4 12,14 18,24 M-8,8 C0,14 6,20 10,28" class="h"/>
+<path d="M-12,14 C-18,18 -26,20 -34,24 C-38,26 -40,30 -36,30 C-30,28 -24,26 -18,26 M-14,22 C-18,28 -24,32 -30,36" />
+<path d="M-34,24 L-40,22 M-34,24 L-40,28 M-30,36 L-36,38 M-30,36 L-34,42" class="h"/>
+`;
+// CRUX — the Southern Cross, drawn as a jewelled Latin cross.
+ART.Cru = `
+<path class="w" d="M-6,-32 L4,-32 L4,-12 L20,-12 L20,-4 L4,-4 L4,36 L-6,36 L-6,-4 L-26,-4 L-26,-12 L-6,-12 Z"/>
+<path d="M-8,-34 L6,-34 L6,-14 L22,-14 L22,-2 L6,-2 L6,38 L-8,38 L-8,-2 L-28,-2 L-28,-14 L-8,-14 Z" class="k2"/>
+<path d="M-4,-30 L2,-30 M-4,32 L2,32 M-24,-6 L-24,-10 M18,-6 L18,-10" class="h"/>
+<path d="M-8,-34 L-12,-38 M6,-34 L10,-38 M-8,38 L-12,42 M6,38 L10,42 M-28,-2 L-32,2 M-28,-14 L-32,-18 M22,-2 L26,2 M22,-14 L26,-18" />
+<path d="M-1,-8 L3,-4 L-1,0 L-5,-4 Z" class="f" opacity=".6"/>
+`;
+// CENTAURUS — Chiron the wise centaur, forehooves at Rigil Kentaurus and Hadar, spear toward Lupus.
+ART.Cen = `
+<path class="w" d="M-90,-120 C-70,-134 -40,-134 -26,-120 C-30,-90 -40,-60 -46,-36 C-20,-20 20,-14 60,-8 C100,-4 134,14 152,40 L150,60 C120,54 90,50 60,50 C30,50 0,52 -30,50 C-44,60 -60,80 -90,124 L-98,120 L-60,50 L-44,110 L-50,112 L-70,60 C-82,52 -90,40 -96,20 C-100,-10 -98,-70 -90,-120Z"/>
+<circle cx="-60" cy="-152" r="13"/>
+<path d="M-70,-160 C-66,-172 -50,-172 -48,-160 C-52,-168 -64,-168 -70,-160Z" class="f" opacity=".35"/>
+<path d="M-72,-146 C-80,-136 -84,-126 -86,-116 M-48,-146 C-42,-136 -40,-126 -40,-118" class="h"/>
+<path d="M-50,-140 C-38,-134 -30,-124 -28,-112 C-32,-90 -40,-64 -46,-36 M-70,-140 C-84,-132 -92,-116 -96,-96 C-100,-70 -100,-40 -96,-20" />
+<path d="M-84,-100 C-70,-92 -50,-92 -36,-100 M-82,-70 C-70,-62 -52,-62 -40,-70" class="h"/>
+<path d="M-96,-96 C-116,-90 -140,-76 -166,-60 C-172,-56 -178,-58 -176,-64 C-150,-80 -124,-96 -100,-108" />
+<path d="M-176,-64 C-186,-62 -186,-52 -178,-52 C-172,-54 -170,-58 -170,-62" class="k2"/>
+<path d="M-186,-56 L-150,-10 M-186,-56 L-196,-70 L-200,-66 Z" class="k2"/>
+<path d="M-28,-112 C-8,-118 6,-126 18,-136 C24,-140 30,-136 26,-130 C14,-120 0,-110 -14,-104" />
+<path d="M18,-136 C22,-142 30,-144 32,-138 L26,-130" class="k2"/>
+<path d="M22,-140 L40,-180 M22,-140 L34,-176 M22,-140 L44,-172 M40,-180 C46,-184 50,-178 44,-172" class="h"/>
+<path d="M-46,-36 C-20,-26 20,-20 60,-14 C100,-8 130,8 148,28 C156,38 156,50 150,60 C148,72 144,86 146,100 C148,120 150,140 148,160 L136,162 C130,140 128,120 130,100 C124,86 116,72 108,60 C80,54 40,52 0,54 C-20,54 -34,52 -44,50" />
+<path d="M-44,50 C-50,60 -50,72 -44,82 C-40,96 -42,108 -46,116 L-56,114 C-54,100 -52,88 -56,76 C-64,64 -70,50 -70,40 C-78,60 -84,90 -94,124 L-104,120 C-96,86 -92,56 -96,20 C-98,-2 -98,-20 -96,-30" />
+<path d="M148,160 C152,166 144,172 136,168 L136,162 M-46,116 C-48,124 -58,122 -56,114 M-94,124 C-96,132 -106,130 -104,120" class="k2"/>
+<path d="M150,60 C170,60 186,80 190,96 C186,90 178,86 170,88" class="k2"/>
+<path d="M170,88 C180,98 186,110 190,124 M170,88 C176,104 178,120 176,136" class="h"/>
+<path d="M-20,-10 C0,0 30,4 60,6 M-10,20 C20,26 50,28 80,26 M100,20 C116,28 128,40 134,52" class="h"/>
+<path d="M-60,-20 C-70,0 -72,20 -68,40" class="h"/>
+`;
+// CARINA — the keel of the ship Argo, Canopus at the rudder.
+ART.Car = `
+<path class="w" d="M262,-30 C240,-6 200,10 150,20 C100,30 40,44 -20,60 C-60,72 -100,74 -130,60 C-100,40 -60,20 -20,4 C40,-16 100,-40 160,-56 C200,-66 240,-70 262,-30Z"/>
+<path d="M262,-30 C240,-6 200,10 150,20 C100,30 40,44 -20,60 C-60,72 -100,74 -130,60" class="k2"/>
+<path d="M-130,60 C-100,40 -60,20 -20,4 C40,-16 100,-40 160,-56 C200,-66 240,-70 262,-30" />
+<path d="M-118,54 C-80,38 -40,22 0,8 C60,-12 120,-34 180,-50 M-100,58 C-60,44 -20,30 20,18 C80,0 140,-20 200,-40 M-80,64 C-40,52 0,40 40,30 C100,12 160,-4 220,-22" class="h"/>
+<path d="M262,-30 C270,-40 274,-54 270,-66 C264,-62 258,-52 254,-44 M262,-30 C268,-16 270,-2 264,10 C258,4 254,-8 252,-20" class="k2"/>
+<path d="M-130,60 C-140,50 -146,38 -144,26 C-138,32 -134,42 -132,50 M-130,60 C-138,70 -140,84 -134,96 C-128,90 -126,78 -126,68" class="k2"/>
+<path d="M60,-32 L60,-100 M60,-100 C80,-96 100,-94 110,-90 C100,-86 80,-82 60,-80" />
+<path d="M60,-32 C40,-36 20,-36 0,-34" class="h"/>
+<path d="M-40,20 L-40,-20 M-40,-20 C-30,-18 -20,-16 -12,-14 C-20,-10 -30,-8 -40,-8" class="h"/>
+`;
+// ERIDANUS — the river winding from Orion's foot to Achernar.
+ART.Eri = `
+<path d="M-254,-182 C-230,-200 -200,-212 -164,-205 C-130,-198 -110,-180 -94,-167 C-74,-150 -60,-120 -54,-97 C-44,-100 -30,-104 -25,-112 C-20,-130 -12,-140 8,-139 C24,-142 40,-150 51,-146 C70,-142 90,-142 102,-144 C120,-130 128,-80 123,-41 C110,-30 60,-10 38,-13 C10,-10 -10,-4 -25,1 C-70,20 -110,50 -131,84 C-110,130 -20,180 76,181 C100,184 120,190 112,181 C130,220 130,250 130,278 C136,300 140,320 143,332 C160,340 176,346 182,347 C196,380 200,410 200,442" class="wb"/>
+<path d="M-254,-182 C-230,-200 -200,-212 -164,-205 C-130,-198 -110,-180 -94,-167 C-74,-150 -60,-120 -54,-97 C-44,-100 -30,-104 -25,-112 C-20,-130 -12,-140 8,-139 C24,-142 40,-150 51,-146 C70,-142 90,-142 102,-144 C120,-130 128,-80 123,-41 C110,-30 60,-10 38,-13 C10,-10 -10,-4 -25,1 C-70,20 -110,50 -131,84 C-110,130 -20,180 76,181 C100,184 120,190 112,181 C130,220 130,250 130,278 C136,300 140,320 143,332 C160,340 176,346 182,347 C196,380 200,410 200,442" />
+<path d="M-250,-170 C-226,-186 -200,-196 -168,-192 C-134,-186 -114,-168 -98,-155 C-80,-138 -66,-110 -60,-88 M-20,-100 C-14,-118 -6,-128 12,-128 C28,-130 44,-138 56,-134 C74,-130 92,-130 100,-132 C114,-116 118,-80 112,-48 M110,-30 C80,-16 60,0 36,-2 C8,2 -12,8 -28,12 C-70,30 -104,56 -122,86 C-104,126 -22,170 70,170 M124,190 C138,222 138,252 140,278 C146,300 150,320 152,330 C166,338 180,342 188,344 C202,378 208,410 208,440" class="h"/>
+<path d="M-240,-192 C-220,-206 -196,-216 -170,-214 M-98,-172 C-84,-160 -72,-140 -66,-120 M8,-152 C24,-156 40,-160 52,-158 M-40,-8 C-80,10 -118,40 -140,76 M-130,100 C-104,144 -20,190 70,192 M118,200 C126,230 124,260 122,286" class="h"/>
+`;
+// CETUS — the sea monster, jaws open toward Andromeda, tail flukes at Diphda.
+ART.Cet = `
+<path class="w" d="M-160,-150 C-130,-160 -90,-150 -70,-130 C-60,-100 -80,-70 -90,-50 C-60,-40 -30,-30 0,-10 C40,20 60,60 60,100 C80,90 120,70 160,60 C200,50 240,54 270,54 C240,70 220,90 200,150 C180,130 160,100 130,90 C100,80 60,90 40,120 C20,140 -10,150 -20,160 C-10,130 0,100 -10,70 C-20,40 -50,20 -80,10 C-110,0 -140,-10 -150,-40 C-160,-70 -150,-100 -140,-120 C-150,-130 -160,-140 -160,-150Z"/>
+<path d="M-160,-150 C-130,-162 -90,-152 -70,-130 C-62,-110 -66,-90 -76,-74 M-160,-150 C-150,-140 -146,-128 -140,-120 C-154,-100 -160,-70 -150,-40 C-140,-10 -110,0 -80,10 C-50,20 -20,40 -10,70 C0,100 -10,130 -20,160" />
+<path d="M-76,-74 C-84,-60 -90,-52 -92,-48 C-60,-40 -30,-30 0,-10 C40,20 60,60 62,100" />
+<path d="M-160,-150 C-140,-150 -120,-142 -100,-134 C-110,-126 -124,-124 -140,-120" class="k2"/>
+<path d="M-140,-150 L-136,-142 M-130,-146 L-126,-138 M-120,-142 L-116,-134 M-110,-138 L-108,-130" class="h"/>
+<circle cx="-118" cy="-152" r="2.2" class="f"/>
+<path d="M-118,-160 C-124,-170 -132,-172 -138,-168 M-98,-158 C-94,-168 -86,-170 -80,-166" class="h"/>
+<path d="M-70,-100 C-58,-96 -46,-90 -40,-80 M-100,-100 C-104,-84 -104,-66 -100,-50" class="h"/>
+<path d="M-20,160 C0,140 20,120 40,110 C70,94 100,86 130,92 C160,100 180,130 200,150 C216,120 236,90 270,54 C240,54 200,50 160,60 C120,70 90,86 62,100" />
+<path d="M270,54 C280,40 290,30 300,26 C296,40 292,52 290,62 M200,150 C204,164 202,178 196,190 C194,178 192,164 192,152" class="k2"/>
+<path d="M-40,0 C-20,10 0,26 10,46 M-60,-20 C-46,-16 -30,-6 -20,6 M20,60 C30,72 36,86 38,100 M-100,-20 C-80,-8 -60,0 -40,10 M-120,-60 C-116,-40 -108,-26 -96,-16" class="h"/>
+<path d="M40,110 C60,106 80,104 100,106 M140,94 C160,104 176,118 190,134 M60,130 C40,136 20,144 0,152" class="h"/>
+<path d="M-20,20 C-30,32 -30,46 -22,58 C-14,62 -10,54 -14,44" class="h"/>
+`;
+// LEPUS — the hare crouching at Orion's feet, ears up.
+ART.Lep = `
+<path class="w" d="M56,-10 C64,-16 66,-30 58,-36 C50,-42 40,-38 34,-30 C20,-36 0,-36 -20,-34 C-46,-32 -64,-24 -68,-6 C-72,10 -64,30 -48,36 C-30,44 0,44 20,40 C40,38 54,30 60,16 C66,8 62,0 56,-10Z"/>
+<path d="M56,-10 C64,-16 66,-30 58,-36 C50,-42 40,-38 34,-30 C20,-36 0,-36 -20,-34 C-46,-32 -64,-24 -68,-6 C-72,10 -64,30 -48,36 C-30,44 0,44 20,40 C40,38 54,30 60,16 C66,8 62,0 56,-10Z" />
+<path d="M34,-30 C30,-40 28,-50 30,-58 C34,-56 38,-46 40,-36 M46,-34 C46,-44 48,-54 54,-60 C56,-52 54,-42 52,-36" class="k2"/>
+<circle cx="48" cy="-20" r="2" class="f"/>
+<path d="M60,16 C64,14 66,18 64,22 M56,-10 C60,-8 62,-10 60,-14" class="h"/>
+<path d="M56,-10 L66,-6 M56,-10 L66,-12 M56,-6 L66,-2" class="h"/>
+<path d="M20,40 C12,44 8,52 8,58 L18,58 C20,52 24,46 28,42 M54,30 C58,40 60,46 62,52 L70,50 C68,42 66,36 62,28" />
+<path d="M-48,36 C-52,42 -54,50 -50,56 L-38,54 C-38,48 -36,42 -32,40 M-30,42 C-34,48 -34,54 -30,60 L-18,58 C-18,52 -16,46 -14,42" />
+<path d="M-68,-6 C-76,-8 -80,-14 -78,-22 C-74,-20 -70,-16 -68,-10" class="k2"/>
+<path d="M-40,-20 C-30,-10 -14,-6 0,-8 M-44,10 C-30,20 -10,22 8,16 M20,-24 C30,-18 40,-14 48,-6" class="h"/>
+`;
+// PISCIS AUSTRINUS — the southern fish drinking the stream of Aquarius, mouth at Fomalhaut.
+ART.PsA = `
+<path class="w" d="M-56,-20 C-40,-40 -10,-46 20,-40 C50,-34 80,-20 102,0 C80,16 50,26 20,26 C-10,26 -40,16 -56,-20Z"/>
+<path d="M-56,-20 C-40,-42 -10,-48 20,-42 C50,-36 80,-22 102,0 C80,18 50,28 20,28 C-10,28 -40,18 -56,-20Z" class="k2"/>
+<path d="M102,0 C112,-12 122,-18 132,-18 C126,-8 124,2 124,12 C126,22 128,30 132,34 C122,32 112,22 102,0Z" />
+<path d="M-56,-20 C-60,-26 -62,-32 -60,-38 C-52,-32 -46,-28 -40,-26 M-56,-20 C-58,-12 -56,-6 -50,-2 C-46,-8 -44,-14 -44,-20" class="k2"/>
+<circle cx="-36" cy="-24" r="2.4" class="f"/>
+<path d="M-30,-36 C-20,-40 -8,-42 4,-40 M-28,10 C-16,16 0,20 14,20 M-20,-14 C0,-16 20,-14 40,-8 M-16,-2 C4,0 24,2 44,4" class="h"/>
+<path d="M10,-42 C14,-52 24,-56 34,-52 C28,-46 20,-42 12,-40 M20,26 C24,36 34,40 44,36 C36,32 28,28 22,26" />
+<path d="M40,-18 L46,-8 L54,-18 M60,-12 L66,-2 L74,-12 M40,10 L46,0 L54,10 M62,8 L68,-2 L76,8" class="h"/>
+`;
+// HYDRA — the water-snake, the longest constellation, head loop in the west.
+ART.Hya = `
+<path d="M258,-160 C260,-186 236,-196 210,-190 C190,-186 178,-166 190,-150 C180,-140 160,-136 141,-134 C110,-120 90,-108 72,-97 C74,-60 90,-40 101,-20 C90,10 60,30 41,41 C20,30 6,20 -6,16 C-20,30 -30,50 -43,62 C-60,64 -80,60 -101,57 C-140,100 -170,180 -201,242 C-220,260 -236,270 -251,280 C-340,270 -460,240 -572,228 C-660,260 -760,330 -835,387" class="wb"/>
+<path d="M258,-160 C260,-186 236,-196 210,-190 C190,-186 178,-166 190,-150 C180,-140 160,-136 141,-134 C110,-120 90,-108 72,-97 C74,-60 90,-40 101,-20 C90,10 60,30 41,41 C20,30 6,20 -6,16 C-20,30 -30,50 -43,62 C-60,64 -80,60 -101,57 C-140,100 -170,180 -201,242 C-220,260 -236,270 -251,280 C-340,270 -460,240 -572,228 C-660,260 -760,330 -835,387" class="k2"/>
+<path d="M248,-158 C250,-176 232,-184 212,-180 C198,-176 190,-164 198,-152 M180,-128 C150,-118 110,-104 84,-88 C86,-60 100,-40 110,-20 C98,14 70,36 44,50 M-12,26 C-26,40 -34,58 -46,70 C-64,72 -84,68 -104,66 C-140,110 -170,190 -206,252 C-224,270 -240,280 -256,290 C-340,280 -460,250 -574,238 C-660,270 -760,340 -830,396" class="h"/>
+<path d="M258,-160 C268,-152 270,-140 262,-134 C256,-140 254,-148 254,-154" class="k2"/>
+<circle cx="238" cy="-172" r="2.2" class="f"/>
+<path d="M190,-150 C186,-144 184,-138 186,-132 M220,-192 C222,-200 228,-204 234,-202" class="h"/>
+<path d="M150,-140 L148,-150 M110,-120 L106,-130 M80,-70 L70,-72 M96,-30 L86,-30 M70,30 L64,20 M20,26 L20,16 M-30,50 L-38,44 M-80,60 L-82,50 M-130,110 L-140,104 M-160,160 L-170,154 M-190,220 L-200,214 M-300,262 L-300,252 M-400,246 L-402,236 M-500,236 L-502,226 M-620,250 L-626,242 M-720,300 L-726,292 M-800,350 L-806,342" class="h"/>
+<path d="M-835,387 C-846,394 -850,404 -846,410 C-840,404 -836,396 -835,387Z" class="f" opacity=".5"/>
+`;
+// COMA BERENICES — the queen's shorn tresses, tied and streaming.
+ART.Com = `
+<path d="M-34,-40 C-30,-52 -20,-56 -12,-50 C-6,-46 -8,-38 -14,-34 C-22,-30 -30,-32 -34,-40Z" class="k2"/>
+<path d="M-24,-46 C-22,-42 -22,-38 -24,-34" class="h"/>
+<path d="M-14,-34 C10,-40 40,-40 66,-38 C70,-36 66,-32 60,-32 C34,-32 10,-32 -12,-28" />
+<path d="M-10,-44 C14,-52 40,-54 70,-50 M-12,-28 C10,-22 34,-24 62,-28 M0,-36 C20,-30 40,-30 60,-34" class="h"/>
+<path d="M-30,-32 C-40,-10 -44,20 -40,50 C-38,60 -34,68 -32,74 M-22,-30 C-28,-4 -30,20 -26,48 C-24,60 -22,68 -24,76 M-14,-30 C-12,-4 -14,20 -18,44 C-20,56 -22,68 -18,76" />
+<path d="M-36,-20 C-48,10 -52,40 -50,66 M-26,-12 C-32,10 -36,30 -34,56 M-8,-24 C-2,0 -4,24 -10,48 M-18,-16 C-16,10 -18,36 -24,64" class="h"/>
+<path d="M-32,74 C-36,80 -30,86 -26,80 M-18,76 C-22,82 -16,88 -12,82 M-24,76 C-28,82 -22,88 -18,82" class="h"/>
+<path d="M56,-36 C64,-46 70,-56 74,-66 M60,-30 C66,-20 72,-12 78,-6" class="h"/>
+`;
+// CANES VENATICI — the two hounds of the herdsman, straining at their leashes.
+ART.CVn = `
+<path class="w" d="M-4,22 C0,14 6,10 12,12 C10,20 4,26 -4,28 C-12,30 -22,30 -32,26 C-36,20 -32,14 -26,12 C-18,12 -10,14 -4,22Z"/>
+<path d="M-4,22 C0,14 6,10 12,12 C10,20 4,26 -4,28 C-12,30 -22,30 -32,26 C-36,20 -32,14 -26,12 C-18,12 -10,14 -4,22Z" />
+<path d="M12,12 C18,10 22,4 22,0 C18,2 14,6 12,8 M12,12 C18,14 22,14 24,10" class="k2"/>
+<circle cx="14" cy="14" r="1.2" class="f"/>
+<path d="M-32,26 C-38,28 -42,24 -44,18 M-30,30 L-30,40 M-22,32 L-22,42 M-6,30 L-6,40 M2,28 L4,38" />
+<path class="w" d="M38,-8 C42,-16 48,-20 54,-18 C52,-10 46,-4 38,-2 C30,0 20,0 10,-4 C6,-10 10,-16 16,-18 C24,-18 32,-16 38,-8Z"/>
+<path d="M38,-8 C42,-16 48,-20 54,-18 C52,-10 46,-4 38,-2 C30,0 20,0 10,-4 C6,-10 10,-16 16,-18 C24,-18 32,-16 38,-8Z" />
+<path d="M54,-18 C60,-20 64,-26 64,-30 C60,-28 56,-24 54,-22 M54,-18 C60,-16 64,-16 66,-20" class="k2"/>
+<circle cx="56" cy="-16" r="1.2" class="f"/>
+<path d="M10,-4 C4,-2 0,-6 -2,-12 M12,0 L12,10 M20,2 L20,12 M36,0 L36,10 M44,-2 L46,8" />
+<path d="M22,0 C-10,-6 -50,-10 -90,-12 M64,-30 C20,-26 -30,-24 -90,-24" class="h"/>
+`;
+// PHOENIX — the bird rising from its own pyre.
+ART.Phe = `
+<path class="w" d="M-14,-10 C-4,-20 10,-22 20,-16 C34,-30 48,-42 58,-50 C50,-34 40,-20 30,-6 C34,10 30,30 20,44 C10,60 0,72 -16,82 C-22,66 -28,50 -34,36 C-46,30 -54,26 -60,20 C-52,14 -44,10 -34,8 C-42,-6 -50,-22 -56,-38 C-44,-30 -30,-22 -14,-10Z"/>
+<path d="M-14,-10 C-4,-20 10,-22 20,-16 C24,0 22,20 14,36 C6,54 -4,68 -16,82 C-24,66 -30,50 -34,36 C-40,20 -40,4 -34,-4 C-28,-10 -22,-12 -14,-10Z" />
+<path d="M20,-16 C34,-30 48,-42 58,-50 C64,-56 70,-52 66,-46 C56,-34 46,-22 36,-10 C32,-6 28,-4 24,-2" />
+<path d="M58,-50 C64,-58 70,-64 78,-66 C70,-58 66,-50 66,-46" class="k2"/>
+<circle cx="60" cy="-46" r="1.8" class="f"/>
+<path d="M62,-40 C70,-30 80,-18 84,-9 C88,-4 82,0 78,-4 C72,-12 64,-22 56,-30" class="h"/>
+<path d="M-34,-4 C-42,-16 -50,-30 -56,-38 C-60,-44 -56,-48 -52,-44 C-44,-34 -36,-22 -28,-12 M-34,36 C-44,32 -54,26 -60,20 C-64,16 -60,12 -56,14 C-48,18 -40,22 -34,26" />
+<path d="M-40,0 L-50,-8 M-38,10 L-50,10 M-38,20 L-48,26 M-36,-14 L-48,-24" class="h"/>
+<path d="M-16,82 C-12,90 -14,100 -20,106 M-16,82 C-20,92 -26,98 -34,100 M-16,82 C-8,88 -2,96 0,104" class="k2"/>
+<path d="M0,-10 C4,10 2,30 -6,50 M8,-14 C12,6 10,24 4,40" class="h"/>
+<path d="M-60,70 C-56,60 -48,58 -44,66 C-40,58 -34,58 -30,66 M20,70 C24,60 32,58 36,66 C40,58 46,58 50,66 M-24,96 C-20,86 -12,86 -8,94 M-56,90 C-52,80 -46,80 -42,88" class="h"/>
+`;
+// PAVO — Hera's peacock, tail fanned to the west with the hundred eyes of Argus.
+ART.Pav = `
+<path class="w" d="M-60,-104 C-52,-108 -46,-102 -48,-94 C-50,-70 -52,-40 -52,-14 C-40,-10 -28,-6 -16,-2 C20,-30 60,-46 110,-40 C130,-20 130,20 122,40 C100,60 60,70 20,64 C0,60 -14,50 -30,30 C-50,34 -68,30 -80,14 C-90,4 -100,0 -107,8 C-100,-4 -88,-10 -74,-8 C-72,-40 -70,-70 -60,-104Z"/>
+<path d="M-60,-104 C-52,-110 -44,-104 -46,-94 C-50,-70 -52,-40 -50,-14 M-60,-104 C-64,-96 -66,-84 -66,-76 C-68,-54 -70,-30 -72,-8" />
+<path d="M-60,-104 C-66,-108 -72,-106 -76,-100 C-70,-100 -64,-98 -60,-96" class="k2"/>
+<circle cx="-56" cy="-100" r="1.8" class="f"/>
+<path d="M-56,-108 L-52,-120 M-60,-108 L-60,-122 M-64,-106 L-68,-118" class="k2"/>
+<path d="M-72,-8 C-80,-2 -84,8 -80,16 C-70,28 -50,32 -30,28 C-24,20 -22,10 -24,0 C-30,-10 -42,-14 -50,-14" class="k2"/>
+<path d="M-80,16 C-90,14 -102,10 -107,8 C-98,2 -86,0 -78,4" />
+<path d="M-30,28 C-14,54 20,68 60,64 C90,60 116,44 122,40 C130,20 130,-20 110,-40 C60,-46 20,-30 -16,-2 C-24,4 -28,14 -30,28Z" />
+<path d="M-16,-2 C10,-24 40,-38 70,-40 M-20,8 C10,-6 40,-18 76,-22 M-24,20 C10,10 40,4 80,2 M-20,32 C10,30 40,32 74,40 M-10,44 C20,50 40,56 60,58" class="h"/>
+<path d="M-40,-30 C-36,-40 -30,-44 -24,-40 C-26,-32 -30,-28 -36,-28Z M50,-46 C56,-56 64,-58 68,-50 C64,-44 58,-42 52,-44Z M120,-14 C128,-14 130,-6 124,-2 C120,-4 118,-10 120,-14Z M116,44 C122,52 118,60 112,58 C110,52 112,46 116,44Z M42,62 C48,60 54,66 50,72 C46,72 42,68 42,62Z M-6,68 C0,64 6,70 2,76 C-2,76 -6,72 -6,68Z" class="k2"/>
+<circle cx="-32" cy="-36" r="1.6" class="f"/><circle cx="60" cy="-50" r="1.6" class="f"/><circle cx="124" cy="-8" r="1.6" class="f"/><circle cx="116" cy="52" r="1.6" class="f"/><circle cx="48" cy="66" r="1.6" class="f"/><circle cx="-2" cy="72" r="1.6" class="f"/>
+<path d="M-50,32 C-52,40 -54,48 -52,56 L-44,56 M-36,30 C-36,40 -36,48 -32,56 L-24,56" />
+`;
+// GRUS — the crane, long neck reaching to Aldhanab, legs trailing to ε.
+ART.Gru = `
+<path class="w" d="M40,4 C56,0 60,14 52,26 C36,36 10,36 -14,32 C-40,30 -60,20 -70,4 C-56,2 -40,8 -26,12 C-16,4 6,0 26,2 C30,-6 32,-14 30,-24 C22,-40 36,-56 52,-64 C62,-72 70,-76 78,-78 C68,-64 56,-52 48,-38 C42,-24 42,-8 40,4Z"/>
+<path d="M-70,4 C-56,2 -40,8 -26,12 C-16,4 6,0 26,2 C40,0 58,4 56,20 C48,34 20,38 -14,34 C-42,30 -60,20 -70,4Z" />
+<path d="M-70,4 C-80,0 -90,-2 -98,-2 M-70,4 C-82,6 -92,10 -100,14 M-70,4 C-82,10 -90,18 -94,26" class="k2"/>
+<path d="M26,2 C32,-12 30,-26 26,-34 C20,-48 30,-62 46,-70 C58,-76 68,-80 78,-80 M40,4 C44,-10 44,-24 40,-36 C34,-50 44,-62 58,-68" />
+<path d="M78,-80 C86,-84 94,-84 100,-80 C92,-78 84,-76 78,-74 C72,-74 68,-76 70,-80Z" class="k2"/>
+<circle cx="76" cy="-78" r="1.6" class="f"/>
+<path d="M-14,34 C-18,44 -22,52 -27,60 M-6,34 C-12,44 -18,54 -22,64 M-27,60 L-34,66 M-27,60 L-22,68 M-22,64 L-28,72 M-22,64 L-16,70" />
+<path d="M-20,8 C-10,14 4,16 18,12 M-30,20 C-14,26 4,28 22,22" class="h"/>
+`;
+
+const FRAMES = {"Ori":[5.5152,5.997],"UMa":[11.0753,52.9],"UMi":[15.7633,80.019],"Cas":[0.9898,60.363],"Cep":[21.9851,65.573],"Dra":[16.7315,65.868],"Cyg":[20.1555,40.727],"Lyr":[18.8075,36.516],"Aql":[19.5827,5.951],"Her":[17.1862,31.671],"Boo":[14.4187,29.466],"CrB":[15.7313,28.071],"Per":[3.3817,44.702],"And":[0.9159,34.465],"Peg":[22.6105,20.962],"Aur":[5.4025,42.912],"Tau":[4.1631,18.855],"Gem":[7.0606,24.041],"CMa":[6.8809,-22.314],"CMi":[7.554,6.76],"Leo":[10.5323,16.782],"Cnc":[8.6961,17.912],"Vir":[13.3404,-1.125],"Lib":[15.336,-20.631],"Sco":[16.8133,-33.127],"Sgr":[18.8109,-28.606],"Cap":[21.1272,-18.982],"Aqr":[22.4614,-7.464],"Psc":[0.6344,10.724],"Ari":[2.3858,22.303],"Oph":[17.1312,-4.988],"Ser":[16.7799,0.895],"Del":[20.6678,14.605],"Crv":[12.3297,-20.981],"Cru":[12.4739,-59.839],"Cen":[13.49,-49.771],"Car":[9.1341,-63.202],"Eri":[3.5998,-23.134],"Cet":[2.02,-4.41],"Lep":[5.5187,-17.605],"PsA":[22.5557,-31.647],"Hya":[10.1364,-10.751],"Com":[12.9446,24.651],"CVn":[12.7523,39.871],"Gru":[22.5181,-45.397],"Phe":[0.959,-47.325],"Pav":[19.7029,-66.791]};
+(function(){
+'use strict';
+const D=Math.PI/180, RD=180/Math.PI;
+const $=id=>document.getElementById(id);
+const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- catalog preparation ---------- */
+const CONS=CONSTELLATIONS.map(c=>({...c,stars:[],lines:[],cx:0,cy:0,alt:0,az:0,visible:false,nProj:0}));
+const conById={}; CONS.forEach(c=>conById[c.id]=c);
+const stars=Object.keys(STARS).map(k=>{
+  const s=STARS[k], ra=s[1]*15*D, dec=s[2]*D;
+  const con=CONS.find(c=>k.endsWith(c.id));
+  const st={key:k,name:s[0],raH:s[1],dec:s[2],mag:s[3],dist:s[4],tint:s[5],con,
+    eq:[Math.cos(dec)*Math.cos(ra),Math.cos(dec)*Math.sin(ra),Math.sin(dec)],
+    h:[0,0,0],p:null,phase:Math.random()*6.283};
+  if(con) con.stars.push(st);
+  return st;
+});
+const starByKey={}; stars.forEach(s=>starByKey[s.key]=s);
+CONS.forEach(c=>{
+  c.lines=CONSTELLATIONS.find(x=>x.id===c.id).lines.map(([a,b])=>[starByKey[a],starByKey[b]]);
+  c.stars.sort((a,b)=>a.mag-b.mag);
+  const f=FRAMES[c.id]; c.local={};
+  if(f){ c.stars.forEach(s=>{c.local[s.key]=gnomonic(s.raH,s.dec,f[0],f[1]);}); }
+});
+const starsByMag=stars.slice().sort((a,b)=>b.mag-a.mag);
+function gnomonic(ra,dec,ra0,dec0){
+  const a=ra*15*D,d=dec*D,a0=ra0*15*D,d0=dec0*D;
+  const cosc=Math.sin(d0)*Math.sin(d)+Math.cos(d0)*Math.cos(d)*Math.cos(a-a0);
+  const x=Math.cos(d)*Math.sin(a-a0)/cosc, y=(Math.cos(d0)*Math.sin(d)-Math.sin(d0)*Math.cos(d)*Math.cos(a-a0))/cosc;
+  return [-x*RD*10,-y*RD*10];
+}
+const GREEK={a:'α',b:'β',g:'γ',d:'δ',e:'ε',z:'ζ',h:'η',q:'θ',i:'ι',k:'κ',l:'λ',m:'μ',n:'ν',x:'ξ',o:'ο',p:'π',r:'ρ',s:'σ',t:'τ',u:'υ',f:'φ',c:'χ',y:'ψ',w:'ω'};
+const SUP={1:'¹',2:'²',3:'³',4:'⁴',5:'⁵',6:'⁶'};
+function bayer(st){
+  const stem=st.key.slice(0,st.key.length-st.con.id.length);
+  if(/^[0-9]+$/.test(stem)) return stem;
+  if(stem==='qq') return 'q';
+  if(/^[A-Z]$/.test(stem)) return stem;
+  return (GREEK[stem[0]]||stem[0])+(stem[1]?SUP[stem[1]]||'':'');
+}
+
+/* ---------- Milky Way samples (galactic equator) ---------- */
+const MW=(()=>{
+  const P=radec(192.8595,27.1284), C0=radec(266.4050,-28.9362);
+  const Q=cross(P,C0); const out=[];
+  let seed=11; const rnd=()=>{seed=(seed*16807)%2147483647;return seed/2147483647;};
+  for(let l=0;l<360;l+=3){
+    const r=l*D; const v=[Math.cos(r)*C0[0]+Math.sin(r)*Q[0],Math.cos(r)*C0[1]+Math.sin(r)*Q[1],Math.cos(r)*C0[2]+Math.sin(r)*Q[2]];
+    const bulge=Math.max(0,Math.cos(r));
+    out.push({eq:v,w:(0.11+0.07*bulge)*(0.8+0.5*rnd()),a:(0.028+0.03*bulge)*(0.7+0.6*rnd()),j:[(rnd()-0.5)*0.05,(rnd()-0.5)*0.05],h:[0,0,0]});
+  }
+  return out;
+})();
+function radec(ra,dec){const a=ra*D,d=dec*D;return [Math.cos(d)*Math.cos(a),Math.cos(d)*Math.sin(a),Math.sin(d)];}
+function cross(a,b){return [a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];}
+function dot(a,b){return a[0]*b[0]+a[1]*b[1]+a[2]*b[2];}
+function norm(a){const l=Math.hypot(a[0],a[1],a[2])||1;return [a[0]/l,a[1]/l,a[2]/l];}
+function slerp(a,b,t){let d=Math.max(-1,Math.min(1,dot(a,b)));const th=Math.acos(d);if(th<1e-5)return b;const s=Math.sin(th);const wa=Math.sin((1-t)*th)/s,wb=Math.sin(t*th)/s;return [a[0]*wa+b[0]*wb,a[1]*wa+b[1]*wb,a[2]*wa+b[2]*wb];}
+const ATMOS=(()=>{let seed=5;const rnd=()=>{seed=(seed*48271)%2147483647;return seed/2147483647;};const o=[];for(let i=0;i<16;i++){const az=rnd()*360,alt=rnd()*70+5;const r=alt*D,a=az*D;o.push({h:[Math.cos(r)*Math.sin(a),Math.cos(r)*Math.cos(a),Math.sin(r)],w:0.25+rnd()*0.4,c:rnd()<0.5?'86,110,200':'150,110,190',a:0.05+rnd()*0.05});}return o;})();
+
+/* ---------- observer & time ---------- */
+const CITIES=[["London",51.51,-0.13,"Europe/London"],["Paris",48.86,2.35,"Europe/Paris"],["Berlin",52.52,13.41,"Europe/Berlin"],["Rome",41.9,12.5,"Europe/Rome"],["Madrid",40.42,-3.7,"Europe/Madrid"],["Athens",37.98,23.73,"Europe/Athens"],["Istanbul",41.01,28.98,"Europe/Istanbul"],["Cairo",30.04,31.24,"Africa/Cairo"],["Nairobi",-1.29,36.82,"Africa/Nairobi"],["Cape Town",-33.93,18.42,"Africa/Johannesburg"],["Lagos",6.52,3.38,"Africa/Lagos"],["Moscow",55.76,37.62,"Europe/Moscow"],["Dubai",25.2,55.27,"Asia/Dubai"],["Mumbai",19.08,72.88,"Asia/Kolkata"],["Delhi",28.61,77.21,"Asia/Kolkata"],["Singapore",1.35,103.82,"Asia/Singapore"],["Hong Kong",22.32,114.17,"Asia/Hong_Kong"],["Beijing",39.9,116.4,"Asia/Shanghai"],["Tokyo",35.68,139.69,"Asia/Tokyo"],["Seoul",37.57,126.98,"Asia/Seoul"],["Sydney",-33.87,151.21,"Australia/Sydney"],["Melbourne",-37.81,144.96,"Australia/Melbourne"],["Auckland",-36.85,174.76,"Pacific/Auckland"],["Honolulu",21.31,-157.86,"Pacific/Honolulu"],["Anchorage",61.22,-149.9,"America/Anchorage"],["Vancouver",49.28,-123.12,"America/Vancouver"],["Seattle",47.61,-122.33,"America/Los_Angeles"],["San Francisco",37.77,-122.42,"America/Los_Angeles"],["Los Angeles",34.05,-118.24,"America/Los_Angeles"],["Denver",39.74,-104.99,"America/Denver"],["Chicago",41.88,-87.63,"America/Chicago"],["Toronto",43.65,-79.38,"America/Toronto"],["New York",40.71,-74.01,"America/New_York"],["Miami",25.76,-80.19,"America/New_York"],["Mexico City",19.43,-99.13,"America/Mexico_City"],["Bogotá",4.71,-74.07,"America/Bogota"],["Lima",-12.05,-77.04,"America/Lima"],["São Paulo",-23.55,-46.63,"America/Sao_Paulo"],["Buenos Aires",-34.6,-58.38,"America/Argentina/Buenos_Aires"],["Santiago",-33.45,-70.67,"America/Santiago"],["Reykjavík",64.15,-21.94,"Atlantic/Reykjavik"]];
+const TZ_GUESS={"America/Los_Angeles":"Los Angeles","America/Denver":"Denver","America/Chicago":"Chicago","America/New_York":"New York","America/Toronto":"Toronto","America/Vancouver":"Vancouver","America/Anchorage":"Anchorage","Pacific/Honolulu":"Honolulu","America/Mexico_City":"Mexico City","America/Sao_Paulo":"São Paulo","America/Argentina/Buenos_Aires":"Buenos Aires","America/Santiago":"Santiago","America/Bogota":"Bogotá","America/Lima":"Lima","Europe/London":"London","Europe/Paris":"Paris","Europe/Berlin":"Berlin","Europe/Rome":"Rome","Europe/Madrid":"Madrid","Europe/Athens":"Athens","Europe/Istanbul":"Istanbul","Europe/Moscow":"Moscow","Africa/Cairo":"Cairo","Africa/Nairobi":"Nairobi","Africa/Johannesburg":"Cape Town","Africa/Lagos":"Lagos","Asia/Dubai":"Dubai","Asia/Kolkata":"Delhi","Asia/Singapore":"Singapore","Asia/Hong_Kong":"Hong Kong","Asia/Shanghai":"Beijing","Asia/Tokyo":"Tokyo","Asia/Seoul":"Seoul","Australia/Sydney":"Sydney","Australia/Melbourne":"Melbourne","Pacific/Auckland":"Auckland","Atlantic/Reykjavik":"Reykjavík"};
+const obs={lat:51.51,lon:-0.13,label:"London",known:false,tz:null};
+let tOffset=0;
+const nowDate=()=>new Date(Date.now()+tOffset*3600e3);
+function sunEq(date){const n=date.getTime()/86400000+2440587.5-2451545;const L=(280.46+0.9856474*n)*D,g=(357.528+0.9856003*n)*D;const lam=L+(1.915*Math.sin(g)+0.02*Math.sin(2*g))*D;const eps=(23.439-0.0000004*n)*D;return norm([Math.cos(lam),Math.cos(eps)*Math.sin(lam),Math.sin(eps)*Math.sin(lam)]);}
+const sunH=[0,0,0];
+function sunAlt(date){return Math.asin(Math.max(-1,Math.min(1,sunH[2])))*RD;}
+function gmst(date){const jd=date.getTime()/86400000+2440587.5;const T=(jd-2451545)/36525;const g=280.46061837+360.98564736629*(jd-2451545)+0.000387933*T*T;return ((g%360)+360)%360;}
+
+/* ---------- view state ---------- */
+const canvas=$('sky'), ctx=canvas.getContext('2d');
+const overlay=$('overlay'), artroot=$('artroot');
+let W=0,H=0,DPR=1;
+const view={c:[0,0,1],up:[0,1,0],right:[-1,0,0],scale:200,spin:0,mode:'dome'};
+let scaleDome=200, cx=0, cy=0;
+let anim=null, hovered=null, selected=null, mythic=false;
+let lineFade=1; // 1 = scientific lines fully drawn for selection
+const figs={}; // constellation id -> {g, inner}
+const horizonPts=[];
+const clipPath=document.createElementNS('http://www.w3.org/2000/svg','clipPath'); clipPath.id='skyclip';
+const clipPathEl=document.createElementNS('http://www.w3.org/2000/svg','path'); clipPath.appendChild(clipPathEl);
+overlay.querySelector('defs').appendChild(clipPath); artroot.setAttribute('clip-path','url(#skyclip)');
+
+function resize(){
+  DPR=Math.min(2,window.devicePixelRatio||1);
+  W=canvas.clientWidth; H=canvas.clientHeight;
+  canvas.width=Math.round(W*DPR); canvas.height=Math.round(H*DPR);
+  overlay.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  const small=Math.min(W,H);
+  scaleDome=(W<760? small*0.46 : small*0.47)/2;
+  cx=W/2; cy=W<760? H*0.42 : H/2;
+  if(view.mode==='dome') view.scale=scaleDome;
+}
+window.addEventListener('resize',resize);
+
+function setBasis(c,upHint){
+  const z=[0,0,1]; let up=[z[0]-dot(z,c)*c[0],z[1]-dot(z,c)*c[1],z[2]-dot(z,c)*c[2]];
+  if(Math.hypot(up[0],up[1],up[2])<1e-3) up=[0,1,0];
+  up=norm(up);
+  if(upHint){ // remove component along c and normalize
+    let u=[upHint[0]-dot(upHint,c)*c[0],upHint[1]-dot(upHint,c)*c[1],upHint[2]-dot(upHint,c)*c[2]];
+    if(Math.hypot(u[0],u[1],u[2])>1e-3) up=norm(u);
+  }
+  view.c=c; view.up=up; view.right=norm(cross(c,up));
+}
+function rotAbout(v,axis,ang){const c=Math.cos(ang),s=Math.sin(ang);const k=axis;const kv=cross(k,v);const kd=dot(k,v);return [v[0]*c+kv[0]*s+k[0]*kd*(1-c),v[1]*c+kv[1]*s+k[1]*kd*(1-c),v[2]*c+kv[2]*s+k[2]*kd*(1-c)];}
+function domeUp(){return rotAbout([0,1,0],[0,0,1],view.spin);}
+
+function project(v){
+  const d=dot(v,view.c); if(d<-0.75) return null;
+  const k=2/(1+d);
+  return [cx+view.scale*k*dot(v,view.right), cy-view.scale*k*dot(v,view.up), d];
+}
+function unproject(X,Y){
+  const x=(X-cx)/view.scale, y=(cy-Y)/view.scale; const rho=Math.hypot(x,y);
+  const th=2*Math.atan(rho/2); if(rho<1e-9) return view.c.slice();
+  const ct=Math.cos(th), st=Math.sin(th), ux=x/rho, uy=y/rho;
+  return norm([ct*view.c[0]+st*(ux*view.right[0]+uy*view.up[0]),ct*view.c[1]+st*(ux*view.right[1]+uy*view.up[1]),ct*view.c[2]+st*(ux*view.right[2]+uy*view.up[2])]);
+}
+
+/* ---------- per-frame sky computation ---------- */
+function computeSky(date){
+  const lst=(gmst(date)+obs.lon)*D, sinL=Math.sin(lst), cosL=Math.cos(lst);
+  const la=obs.lat*D, sinLat=Math.sin(la), cosLat=Math.cos(la);
+  const toH=(eq,h)=>{const x1=eq[0]*cosL+eq[1]*sinL, y1=-eq[0]*sinL+eq[1]*cosL, z1=eq[2];h[0]=y1;h[1]=z1*cosLat-x1*sinLat;h[2]=z1*sinLat+x1*cosLat;};
+  for(const s of stars){ toH(s.eq,s.h); s.p=s.h[2]>-0.02?project(s.h):null; }
+  for(const m of MW) toH(m.eq,m.h);
+  toH(sunEq(date),sunH);
+  for(const c of CONS){
+    let sx=0,sy=0,sz=0,n=0,up=0; let px=0,py=0,np=0;
+    for(const s of c.stars){sx+=s.h[0];sy+=s.h[1];sz+=s.h[2];n++; if(s.h[2]>0)up++; if(s.p&&s.p[2]>0.1){px+=s.p[0];py+=s.p[1];np++;}}
+    const v=norm([sx,sy,sz]); c.alt=Math.asin(Math.max(-1,Math.min(1,v[2])))*RD; c.az=((Math.atan2(v[0],v[1])*RD)+360)%360; c.h=v;
+    c.visible=v[2]>0&&up>=Math.max(1,n/2);
+    c.nProj=np; c.cx=np?px/np:0; c.cy=np?py/np:0;
+  }
+  horizonPts.length=0;
+  for(let a=0;a<360;a+=2){const r=a*D;const p=project([Math.sin(r),Math.cos(r),0]);if(p)horizonPts.push(p);}
+}
+
+/* ---------- painting ---------- */
+const TINT={r:'255,205,150',b:'200,220,255',y:'255,240,200',w:'255,252,245'};
+function paint(t){
+  const g=ctx; g.setTransform(DPR,0,0,DPR,0,0);
+  g.fillStyle='#070a19'; g.fillRect(0,0,W,H);
+  const zen=project([0,0,1]);
+  // sky clip
+  g.save();
+  const hp=new Path2D(); horizonPts.forEach((p,i)=>i?hp.lineTo(p[0],p[1]):hp.moveTo(p[0],p[1])); hp.closePath();
+  g.clip(hp);
+  let gcx=cx,gcy=cy; if(zen){gcx=zen[0];gcy=zen[1];}
+  let rad=0; for(const p of horizonPts) rad=Math.max(rad,Math.hypot(p[0]-gcx,p[1]-gcy)); rad=Math.min(rad,Math.max(W,H)*6)||scaleDome*2;
+  const grad=g.createRadialGradient(gcx,gcy,0,gcx,gcy,rad);
+  grad.addColorStop(0,'#0b1236');grad.addColorStop(0.5,'#141d4d');grad.addColorStop(0.82,'#2a2e62');grad.addColorStop(1,'#4b3f66');
+  g.fillStyle=grad; g.fillRect(-W,-H,W*3,H*3);
+  // twilight glow toward the Sun
+  { const sa=sunAlt(); if(sa>-20){ const dir=norm([sunH[0],sunH[1],0]); const p=project([dir[0]*0.995,dir[1]*0.995,0.08]); if(p&&p[2]>-0.3){ const k=2/(1+p[2]); const r=view.scale*1.1*k; const a=Math.min(1,(sa+20)/22); const gr=g.createRadialGradient(p[0],p[1],0,p[0],p[1],r); gr.addColorStop(0,`rgba(230,150,110,${0.34*a})`); gr.addColorStop(0.45,`rgba(150,110,150,${0.16*a})`); gr.addColorStop(1,'rgba(120,90,140,0)'); g.fillStyle=gr; g.fillRect(p[0]-r,p[1]-r,2*r,2*r); } } }
+  // atmosphere blobs
+  for(const b of ATMOS){const p=project(b.h);if(!p)continue;const r=view.scale*b.w*(2/(1+p[2]));const gr=g.createRadialGradient(p[0],p[1],0,p[0],p[1],r);gr.addColorStop(0,`rgba(${b.c},${b.a})`);gr.addColorStop(1,`rgba(${b.c},0)`);g.fillStyle=gr;g.fillRect(p[0]-r,p[1]-r,2*r,2*r);}
+  // Milky Way
+  g.globalCompositeOperation='lighter';
+  for(const m of MW){if(m.h[2]<-0.15)continue;const p=project(m.h);if(!p||p[2]<-0.2)continue;const k=2/(1+p[2]);const r=view.scale*m.w*k;const x=p[0]+m.j[0]*view.scale*k,y=p[1]+m.j[1]*view.scale*k;const gr=g.createRadialGradient(x,y,0,x,y,r);gr.addColorStop(0,`rgba(214,214,240,${m.a})`);gr.addColorStop(0.5,`rgba(200,196,230,${m.a*0.45})`);gr.addColorStop(1,'rgba(200,196,230,0)');g.fillStyle=gr;g.fillRect(x-r,y-r,2*r,2*r);}
+  g.globalCompositeOperation='source-over';
+  // constellation lines
+  const zf=Math.min(2.4,Math.max(1,Math.pow(view.scale/scaleDome,0.35)));
+  g.lineCap='round'; g.lineJoin='round';
+  for(const c of CONS){
+    let a=0.2; let w=1;
+    if(c===hovered&&c!==selected){a=0.55;w=1.3;}
+    if(c===selected){a=0.2+0.7*lineFade;w=1.5;}
+    else if(mythic&&view.mode!=='dome'){a*=0.5;}
+    if(a<0.02)continue;
+    g.strokeStyle=`rgba(233,214,168,${a})`; g.lineWidth=w*Math.min(zf,1.4);
+    g.beginPath();
+    for(const [s1,s2] of c.lines){ if(!s1.p||!s2.p||s1.p[2]<-0.3||s2.p[2]<-0.3) continue; g.moveTo(s1.p[0],s1.p[1]); g.lineTo(s2.p[0],s2.p[1]); }
+    g.stroke();
+  }
+  // stars
+  const tw=reduced?0:t/1000;
+  for(const s of starsByMag){
+    const p=s.p; if(!p||p[2]<-0.3) continue;
+    const k=2/(1+p[2]); const sizeK=Math.min(1.6,Math.sqrt(k/2)+0.3);
+    let r=Math.max(0.55,4.6-0.72*s.mag)*zf*0.85*sizeK;
+    let alpha=1; if(s.mag<3.6&&tw){alpha=1-0.16*(0.5+0.5*Math.sin(tw*2.3+s.phase));}
+    const col=TINT[s.tint]||TINT.w;
+    const sel=selected&&s.con===selected;
+    if(sel&&mythic){ const gr=view.scale/scaleDome; const R=r*(5.5+2*Math.min(1,gr/4))*(1-lineFade*0.5); const gg=g.createRadialGradient(p[0],p[1],0,p[0],p[1],R); gg.addColorStop(0,`rgba(255,218,140,${0.55*(1-lineFade*0.6)})`); gg.addColorStop(0.35,`rgba(240,196,110,${0.22*(1-lineFade*0.6)})`); gg.addColorStop(1,'rgba(240,196,110,0)'); g.fillStyle=gg; g.beginPath(); g.arc(p[0],p[1],R,0,6.2832); g.fill(); }
+    if(s.mag<2.4||(sel&&s.mag<4.2)){ const R=r*(sel?4.5:3.6); const gg=g.createRadialGradient(p[0],p[1],0,p[0],p[1],R); gg.addColorStop(0,`rgba(${col},${0.32*alpha})`); gg.addColorStop(1,`rgba(${col},0)`); g.fillStyle=gg; g.beginPath(); g.arc(p[0],p[1],R,0,6.2832); g.fill(); }
+    g.fillStyle=`rgba(${col},${alpha})`; g.beginPath(); g.arc(p[0],p[1],r,0,6.2832); g.fill();
+  }
+  // constellation labels
+  g.textAlign='center'; g.textBaseline='middle';
+  const placed=[];
+  for(const c of CONS.slice().sort((a,b)=>b.stars.length-a.stars.length)){
+    if(c.nProj<2||!c.visible) continue;
+    let a=view.mode==='dome'?0.5:0.4; if(c===hovered)a=0.9; if(c===selected)a=view.mode==='con'?0.0:0.85;
+    if(mythic&&c!==selected&&view.mode==='dome')a*=0.7;
+    if(a<=0)continue;
+    const fs=Math.min(19,12.5*zf);
+    g.font=`italic 500 ${fs}px "Cormorant Garamond",Garamond,serif`;
+    g.fillStyle=`rgba(233,214,168,${a})`; g.fillText(c.name.toUpperCase().split('').join(' '),c.cx,c.cy);
+  }
+  // star names for the selected constellation in scientific view
+  if(selected&&lineFade>0.05&&view.mode!=='dome'){
+    g.font=`500 ${Math.min(15,11*zf)}px "Cormorant Garamond",Garamond,serif`; g.textAlign='left';
+    for(const s of selected.stars){ if(!s.p||s.p[2]<0||s.mag>4.6)continue; const nm=/ [A-Z]/.test(s.name)&&!/^[A-Z]/.test(s.name)? bayer(s):s.name; const x=s.p[0]+7,y=s.p[1]-7; g.lineWidth=3; g.strokeStyle=`rgba(7,10,25,${0.7*lineFade})`; g.strokeText(nm,x,y); g.fillStyle=`rgba(239,228,201,${0.85*lineFade})`; g.fillText(nm,x,y); }
+  }
+  g.restore();
+  // horizon ring & cardinal points
+  g.strokeStyle='rgba(240,196,110,.32)'; g.lineWidth=1.2; g.stroke(hp);
+  g.font=`600 ${Math.max(11,Math.min(15,scaleDome*0.09))}px "Cormorant Garamond",Garamond,serif`; g.textAlign='center'; g.textBaseline='middle'; g.fillStyle='rgba(233,214,168,.7)';
+  [['N',0],['E',90],['S',180],['W',270]].forEach(([l,az])=>{const r=az*D,a=-5*D;const p=project([Math.cos(a)*Math.sin(r),Math.cos(a)*Math.cos(r),Math.sin(a)]);if(p&&p[2]>-0.2)g.fillText(l,p[0],p[1]);});
+  // SVG clip path
+  clipPathEl.setAttribute('d',horizonPts.length?('M'+horizonPts.map(p=>p[0].toFixed(1)+' '+p[1].toFixed(1)).join('L')+'Z'):'');
+}
+
+/* ---------- mythic figures (SVG) ---------- */
+function ensureFig(c){
+  if(figs[c.id]) return figs[c.id]; if(!ART[c.id]) return null;
+  const g=document.createElementNS('http://www.w3.org/2000/svg','g'); g.setAttribute('class','fig'); g.style.opacity='0';
+  const inner=document.createElementNS('http://www.w3.org/2000/svg','g'); inner.innerHTML=ART[c.id]; g.appendChild(inner); artroot.appendChild(g);
+  return figs[c.id]={g,inner,shown:0};
+}
+function fitFigure(c){ // similarity transform local -> screen, least squares over projected stars
+  let n=0,ax=0,ay=0,bx=0,by=0; const pts=[];
+  for(const s of c.stars){ const l=c.local[s.key]; if(!l||!s.p||s.p[2]<0.2) continue; pts.push([l[0],l[1],s.p[0],s.p[1]]); ax+=l[0];ay+=l[1];bx+=s.p[0];by+=s.p[1];n++; }
+  if(n<2) return null;
+  ax/=n;ay/=n;bx/=n;by/=n; let re=0,im=0,den=0;
+  for(const [lx,ly,px,py] of pts){const x=lx-ax,y=ly-ay,u=px-bx,v=py-by; re+=x*u+y*v; im+=x*v-y*u; den+=x*x+y*y;}
+  if(den<1e-9) return null; const a=re/den,b=im/den; // a = s cos, b = s sin
+  return [a,b,-b,a,bx-(a*ax-b*ay),by-(b*ax+a*ay)];
+}
+function updateFigures(){
+  for(const c of CONS){
+    if(!ART[c.id]) continue;
+    let target=0;
+    if(mythic){ if(c===selected) target=1; else if(c.visible&&c.nProj>=3) target=(view.mode==='dome'?0.62:0.35); }
+    const f=figs[c.id]||(target>0?ensureFig(c):null); if(!f) continue;
+    if(target>0) f.shown=performance.now();
+    if(target===0&&performance.now()-f.shown>1300){ if(f.g.style.opacity!=='0'){f.g.style.opacity='0';} continue; }
+    const m=fitFigure(c);
+    if(!m){ f.g.style.opacity='0'; continue; }
+    f.inner.setAttribute('transform',`matrix(${m.map(v=>v.toFixed(4)).join(' ')})`);
+    f.g.style.opacity=String(target);
+  }
+}
+
+/* ---------- animation & interaction ---------- */
+function ease(t){return t<0.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;}
+function flyTo(c1,scale1,up1,dur){
+  const c0=view.c.slice(),s0=view.scale,u0=view.up.slice();
+  if(reduced){setBasis(c1,up1);view.scale=scale1;anim=null;return;}
+  anim={t0:performance.now(),dur,c0,c1,s0,s1:scale1,u0,u1:up1};
+}
+function stepAnim(now){
+  if(!anim)return; const t=Math.min(1,(now-anim.t0)/anim.dur), e=ease(t);
+  const c=norm(slerp(anim.c0,anim.c1,e)); const up=norm([anim.u0[0]+(anim.u1[0]-anim.u0[0])*e,anim.u0[1]+(anim.u1[1]-anim.u0[1])*e,anim.u0[2]+(anim.u1[2]-anim.u0[2])*e]);
+  setBasis(c,up); view.scale=Math.exp(Math.log(anim.s0)+(Math.log(anim.s1)-Math.log(anim.s0))*e);
+  if(t>=1)anim=null;
+}
+function goDome(){
+  view.mode='dome';
+  flyTo([0,0,1],scaleDome,domeUp(),900);
+}
+function selectCon(c){
+  selected=c; view.mode='con';
+  // target center & scale: fit constellation into ~55% of the shorter side
+  const ctr=norm(c.h); const zen=[0,0,1];
+  let up=[zen[0]-dot(zen,ctr)*ctr[0],zen[1]-dot(zen,ctr)*ctr[1],zen[2]-dot(zen,ctr)*ctr[2]]; if(Math.hypot(up[0],up[1],up[2])<1e-3)up=domeUp(); up=norm(up);
+  const right=norm(cross(ctr,up)); let ext=0;
+  for(const s of c.stars){const d=dot(s.h,ctr);const k=2/(1+d);ext=Math.max(ext,Math.abs(k*dot(s.h,right)),Math.abs(k*dot(s.h,up)));}
+  const small=Math.min(W,H); const target=(W<760?0.34:0.30)*small;
+  const scale=Math.min(scaleDome*9,Math.max(scaleDome*1.15,target/Math.max(ext,0.02)));
+  flyTo(ctr,scale,up,1000);
+  showDetail(c); highlightVis();
+}
+function deselect(){ selected=null; $('detail').classList.remove('open'); highlightVis(); }
+
+let drag=null;
+canvas.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY,moved:false,c:view.c.slice(),up:view.up.slice(),spin:view.spin,p0:unproject(e.clientX,e.clientY)};canvas.setPointerCapture(e.pointerId);});
+canvas.addEventListener('pointermove',e=>{
+  if(drag){
+    const dx=e.clientX-drag.x,dy=e.clientY-drag.y; if(Math.hypot(dx,dy)>4)drag.moved=true;
+    if(!drag.moved)return; anim=null;
+    if(view.mode==='dome'){ const ang=Math.atan2(drag.y-cy,drag.x-cx)-Math.atan2(e.clientY-cy,e.clientX-cx); view.spin=drag.spin-ang; setBasis([0,0,1],domeUp()); }
+    else { // grab the sky
+      const p1=unproject(e.clientX,e.clientY); const axis=cross(p1,drag.p0); const l=Math.hypot(axis[0],axis[1],axis[2]);
+      if(l>1e-6){ const ang=Math.asin(Math.min(1,l)); const ax=norm(axis); const c=rotAbout(view.c,ax,ang); const up=rotAbout(view.up,ax,ang); setBasis(c,up); drag.p0=unproject(e.clientX,e.clientY); }
+      if(view.mode==='con') view.mode='free';
+    }
+    return;
+  }
+  hovered=hitTest(e.clientX,e.clientY); canvas.style.cursor=hovered?'pointer':'crosshair';
+});
+canvas.addEventListener('pointerup',e=>{
+  if(drag&&!drag.moved){ const c=hitTest(e.clientX,e.clientY); if(c){selectCon(c);} }
+  drag=null;
+});
+canvas.addEventListener('pointercancel',()=>{drag=null;});
+canvas.addEventListener('wheel',e=>{
+  e.preventDefault(); anim=null;
+  const f=Math.exp(-e.deltaY*0.0016); const ns=Math.max(scaleDome,Math.min(scaleDome*12,view.scale*f));
+  if(ns<=scaleDome+0.5){ if(view.mode!=='dome'){view.mode='dome';setBasis([0,0,1],domeUp());} view.scale=scaleDome; return; }
+  const p=unproject(e.clientX,e.clientY); const fr=1-view.scale/ns;
+  const c=norm(slerp(view.c,p,Math.max(0,Math.min(1,fr))));
+  const zen=[0,0,1]; let up=[zen[0]-dot(zen,c)*c[0],zen[1]-dot(zen,c)*c[1],zen[2]-dot(zen,c)*c[2]]; if(Math.hypot(up[0],up[1],up[2])<1e-3)up=domeUp();
+  setBasis(c,norm(up)); view.scale=ns; if(view.mode==='dome'||view.mode==='con')view.mode='free';
+},{passive:false});
+function hitTest(x,y){
+  let best=null,bd=22*22;
+  for(const s of stars){ if(!s.p||s.p[2]<0||s.h[2]<0||!s.con)continue; const d=(s.p[0]-x)**2+(s.p[1]-y)**2; if(d<bd){bd=d;best=s.con;} }
+  if(best)return best; bd=44*44;
+  for(const c of CONS){ if(!c.visible||c.nProj<2)continue; const d=(c.cx-x)**2+(c.cy-y)**2; if(d<bd){bd=d;best=c;} }
+  return best;
+}
+window.addEventListener('keydown',e=>{ if(e.key==='Escape'){ if($('loc').classList.contains('open')){closeLoc();} else {deselect(); goDome();} } });
+
+/* ---------- UI: detail panel ---------- */
+function dirWord(az){const names=['north','north-east','east','south-east','south','south-west','west','north-west'];return names[Math.round(az/45)%8];}
+function placeText(c){ if(c.alt<0)return 'below the horizon'; if(c.alt>=68)return 'nearly overhead'; const pre=c.alt>=38?'high in the ':(c.alt>=15?'in the ':'low in the '); return pre+dirWord(c.az); }
+function showDetail(c){
+  $('dName').textContent=c.name; $('dTitle').textContent=c.title;
+  const rows=c.stars.map(s=>`<tr><td>${s.name}<span class="by">${bayer(s)}</span></td><td class="n">${s.mag.toFixed(2)}</td><td class="n">${s.dist<20?s.dist.toFixed(1):Math.round(s.dist).toLocaleString()}</td></tr>`).join('');
+  $('sci').innerHTML=`<table><thead><tr><th>Star</th><th class="n">Mag</th><th class="n">Light-years</th></tr></thead><tbody>${rows}</tbody></table><p class="note">Magnitude runs backwards: the smaller the number, the brighter the star. Positions are J2000, distances rounded.</p>`;
+  $('myth').innerHTML=`<p class="drop">${c.blurb}</p><p class="plate">Figure after the celestial atlases · ${c.stars.length} stars · ${ART[c.id]?'engraved':'line figure'}</p>`;
+  $('detail').classList.add('open');
+  updateWhere();
+}
+function updateWhere(){ if(selected){$('dWhere').textContent=`${placeText(selected)} · altitude ${Math.round(selected.alt)}°`;} }
+function setMythic(on){
+  mythic=on;
+  $('segSci').setAttribute('aria-pressed',String(!on)); $('segMyth').setAttribute('aria-pressed',String(on));
+  $('modeBtn').setAttribute('aria-pressed',String(on)); $('modeBtn').textContent=on?'Scientific sky':'Mythic sky';
+  $('sci').hidden=on; $('myth').hidden=!on;
+}
+$('segSci').onclick=()=>setMythic(false); $('segMyth').onclick=()=>setMythic(true); $('modeBtn').onclick=()=>setMythic(!mythic);
+$('backBtn').onclick=()=>{deselect();goDome();};
+$('nowBtn').onclick=()=>{tOffset=0;$('tslider').value='0';updateTimeLabel();};
+$('tslider').oninput=e=>{tOffset=parseFloat(e.target.value);updateTimeLabel();};
+function updateTimeLabel(){ const l=$('tlabel'); l.textContent=tOffset===0?'now':(tOffset>0?'+':'−')+Math.abs(tOffset).toFixed(2).replace(/\.?0+$/,'')+' h'; updateHeader(); }
+function updateHeader(){
+  const d=nowDate(); let opt={hour:'2-digit',minute:'2-digit'},dopt={day:'numeric',month:'short'};
+  if(obs.tz){try{new Intl.DateTimeFormat([],{timeZone:obs.tz});opt.timeZone=obs.tz;dopt.timeZone=obs.tz;}catch(e){}}
+  const tstr=d.toLocaleTimeString([],opt), dstr=d.toLocaleDateString([],dopt);
+  const la=Math.abs(obs.lat).toFixed(2)+'°'+(obs.lat>=0?'N':'S'), lo=Math.abs(obs.lon).toFixed(2)+'°'+(obs.lon>=0?'E':'W');
+  const sa=sunAlt(d); const sun=sa>0?'daylight, stars hidden':(sa>-6?'civil twilight':(sa>-18?'twilight':'night'));
+  $('where').textContent=`${obs.label?obs.label+' · ':''}${la} ${lo} · ${tstr}, ${dstr} · ${sun}`;
+}
+/* ---------- UI: visible list ---------- */
+let visKey='';
+function updateVisList(){
+  const vis=CONS.filter(c=>c.visible).sort((a,b)=>b.alt-a.alt);
+  const key=vis.map(c=>c.id+Math.round(c.alt/5)).join(); if(key===visKey)return; visKey=key;
+  $('visCount').textContent=vis.length+' of '+CONS.length;
+  $('visList').innerHTML=vis.map(c=>`<li data-id="${c.id}"><b>${c.name}</b><i>${placeText(c)}</i></li>`).join('');
+  highlightVis();
+}
+$('visList').addEventListener('click',e=>{const li=e.target.closest('li');if(!li)return;selectCon(conById[li.dataset.id]);});
+$('visHead').onclick=()=>$('vis').classList.toggle('collapsed');
+function highlightVis(){ $('visList').querySelectorAll('li').forEach(li=>li.classList.toggle('active',!!selected&&li.dataset.id===selected.id)); }
+if(window.innerWidth<760) $('vis').classList.add('collapsed');
+
+/* ---------- UI: location ---------- */
+const citySel=$('city');
+citySel.innerHTML='<option value="">— choose a city —</option>'+CITIES.map((c,i)=>`<option value="${i}">${c[0]}</option>`).join('');
+citySel.onchange=()=>{const c=CITIES[citySel.value];if(c){$('lat').value=c[1];$('lon').value=c[2];}};
+function openLoc(msg){ $('locErr').textContent=msg||''; $('lat').value=obs.lat.toFixed(2); $('lon').value=obs.lon.toFixed(2); const i=CITIES.findIndex(c=>c[0]===obs.label); citySel.value=i>=0?String(i):''; $('loc').classList.add('open'); citySel.focus(); }
+function closeLoc(){ $('loc').classList.remove('open'); }
+$('locBtn').onclick=()=>openLoc();
+$('loc').addEventListener('click',e=>{if(e.target===$('loc'))closeLoc();});
+$('applyBtn').onclick=()=>{
+  const la=parseFloat($('lat').value),lo=parseFloat($('lon').value);
+  if(!(la>=-90&&la<=90&&lo>=-180&&lo<=180)){$('locErr').textContent='Latitude must be between −90 and 90, longitude between −180 and 180.';return;}
+  const c=CITIES[citySel.value]; const isCity=c&&Math.abs(c[1]-la)<0.05&&Math.abs(c[2]-lo)<0.05; setObserver(la,lo,isCity?c[0]:nearestCity(la,lo),isCity?c[3]:null); closeLoc(); toast('Sky redrawn for '+obs.label);
+};
+$('geoBtn').onclick=()=>requestGeo(true);
+function nearestCity(la,lo){let best='',bd=1e9;for(const c of CITIES){const d=Math.hypot(c[1]-la,(c[2]-lo)*Math.cos(la*D));if(d<bd){bd=d;best=c[0];}}return bd<1.6?('near '+best):'';}
+function setObserver(la,lo,label,tz){ obs.lat=la;obs.lon=lo;obs.label=label||'';obs.known=true;obs.tz=tz||null; try{localStorage.setItem('firmament.obs',JSON.stringify({lat:la,lon:lo,label:obs.label,tz:obs.tz}));}catch(e){} visKey=''; updateHeader(); }
+function requestGeo(fromButton){
+  if(!navigator.geolocation){ openLoc('This browser has no location service. Choose a city instead.'); return; }
+  $('locErr').textContent='Asking the browser for your position…';
+  navigator.geolocation.getCurrentPosition(pos=>{ setObserver(+pos.coords.latitude.toFixed(3),+pos.coords.longitude.toFixed(3),nearestCity(pos.coords.latitude,pos.coords.longitude)); closeLoc(); toast('Sky drawn for your location'); },
+    err=>{ const why=err.code===1?'Location permission was declined.':'Your position could not be found.'; if(fromButton)$('locErr').textContent=why+' Choose a city or enter coordinates.'; else openLoc(why+' Choose a city or enter coordinates.'); },
+    {timeout:9000,maximumAge:600000});
+}
+function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('show'),2600);}
+
+/* ---------- boot ---------- */
+resize(); setBasis([0,0,1],[0,1,0]);
+(function initObserver(){
+  let saved=null; try{saved=JSON.parse(localStorage.getItem('firmament.obs'));}catch(e){}
+  const tz=Intl.DateTimeFormat().resolvedOptions().timeZone; const guess=CITIES.find(c=>c[0]===TZ_GUESS[tz]);
+  if(saved&&isFinite(saved.lat)){ obs.lat=saved.lat;obs.lon=saved.lon;obs.label=saved.label||'';obs.tz=saved.tz||null;obs.known=true; }
+  else if(guess){ obs.lat=guess[1];obs.lon=guess[2];obs.label=guess[0];obs.tz=guess[3]; }
+  updateHeader();
+  if(!saved&&!/lat=/.test(location.hash)) requestGeo(false);
+})();
+let lastHeader=-1e9;
+function frame(t){
+  stepAnim(t);
+  // fade scientific lines out in mythic view for the selected constellation
+  const target=(mythic&&selected)?0:1; const k=reduced?1:0.08; lineFade+=(target-lineFade)*k; if(Math.abs(target-lineFade)<0.01)lineFade=target;
+  computeSky(nowDate());
+  paint(t); updateFigures();
+  if(t-lastHeader>1000){ lastHeader=t; updateHeader(); updateVisList(); updateWhere(); $('hint').style.opacity=selected?'0':'1'; }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+// deep link: #con=Cyg&myth=1&lat=..&lon=..&h=offset
+(function(){ const q=new URLSearchParams(location.hash.slice(1)); if(!q.size)return;
+  if(q.has('lat')&&q.has('lon')){obs.lat=+q.get('lat');obs.lon=+q.get('lon');obs.label=q.get('label')||nearestCity(obs.lat,obs.lon);obs.known=true;closeLoc();updateHeader();}
+  if(q.has('h')){tOffset=+q.get('h');$('tslider').value=String(tOffset);updateTimeLabel();}
+  if(q.get('myth')==='1')setMythic(true);
+  if(q.has('con')){setTimeout(()=>{computeSky(nowDate());const c=conById[q.get('con')];if(c)selectCon(c);},150);}
+})();
+})();
+
+</script>
+
+<!--ARTIFACT-END-->
+</body>
+</html>

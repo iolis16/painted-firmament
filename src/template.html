@@ -1,7 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="A live star map of the sky above you right now. See each constellation as its real stars, or as a hand-drawn mythological engraving pinned to them.">
+<meta name="theme-color" content="#070a19">
+<meta property="og:title" content="The Painted Firmament">
+<meta property="og:description" content="The constellations above you right now, as real stars or as painted myths.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%230c1238'/%3E%3Ccircle cx='22' cy='24' r='3' fill='%23f0c46e'/%3E%3Ccircle cx='40' cy='18' r='2.2' fill='%23e9d6a8'/%3E%3Ccircle cx='44' cy='38' r='3.2' fill='%23f0c46e'/%3E%3Ccircle cx='28' cy='44' r='2' fill='%23e9d6a8'/%3E%3Cpath d='M22 24L40 18L44 38L28 44Z' fill='none' stroke='%23e9d6a8' stroke-width='1.2' opacity='.7'/%3E%3C/svg%3E">
+<!--ARTIFACT-START-->
 <title>The Painted Firmament</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=IM+Fell+English:ital@0;1&display=swap">
 <style>
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
+img{max-width:100%}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 :root{
   --ground:#070a19; --sky-zenith:#0c1238; --sky-mid:#172150; --sky-low:#2b2f62; --sky-horizon:#4d4068;
   --ink:#e9d6a8; --ink-dim:rgba(233,214,168,.55); --gold:#f0c46e; --gold-soft:rgba(240,196,110,.35);
@@ -91,6 +106,8 @@ button,select,input{font-family:inherit;font-size:14px;color:var(--text)}
   #detail h2{font-size:26px}
 }
 </style>
+<!--HEAD-END--></head>
+<body>
 <div id="stage">
   <canvas id="sky"></canvas>
   <svg id="overlay" xmlns="http://www.w3.org/2000/svg">
@@ -147,3 +164,7 @@ __ART__
 const FRAMES = __FRAMES__;
 __APP__
 </script>
+
+<!--ARTIFACT-END-->
+</body>
+</html>
