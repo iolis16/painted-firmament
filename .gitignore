@@ -2,3 +2,4 @@ tools/pv_*.png
 tools/pv_*.html
 tools/montage.png
 .DS_Store
+.vercel
