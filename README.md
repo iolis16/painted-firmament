@@ -4,6 +4,7 @@ An interactive constellation mythology explorer: a live star map of the sky abov
 your location right now, where each constellation can be viewed as its real stars
 or as a hand-drawn mythological engraving pinned to those stars.
 
+Live: https://firmament-ashy.vercel.app
 Published artifact: https://claude.ai/artifact/1kzk8V1p4V4QCRq74offDq
 
 Everything runs client-side in one HTML file. No framework, no backend, no
